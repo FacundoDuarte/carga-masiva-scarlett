@@ -1,0 +1,30 @@
+modules:
+  consumer:
+    - key: queue-consumer
+      queue: queue-name
+      resolver:
+        function: consumer-function
+        method: event-listener
+  jira:projectPage:
+    - key: creacion-masiva-scarlett-ui-kit-hello-world-project-page
+      resource: main
+      resolver:
+        function: resolver
+      title: creacion-masiva-scarlett-ui-kit
+  function:
+    - key: resolver
+      handler: index.handler
+    - key: consumer-function
+      handler: consumer.consumerHandler
+resources:
+  - key: main
+    path: static/hello-world/build
+permissions:
+  scopes:
+    - read:jira-work
+    - write:jira-work
+    - write:servicedesk-request
+app:
+  runtime:
+    name: nodejs20.x
+  id: ari:cloud:ecosystem::app/e288d60c-ca8d-4d94-8a0a-6730f3786ab3

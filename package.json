@@ -1,0 +1,18 @@
+{
+  "name": "jira-project-page-custom-ui",
+  "version": "1.1.0",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "eslint-plugin-react-hooks": "^4.6.0"
+  },
+  "dependencies": {
+    "@atlaskit/button": "^20.3.8",
+    "@atlaskit/form": "^11.0.1",
+    "@forge/resolver": "1.6.3",
+    "papaparse": "^5.5.1",
+    "react-drag-drop-files": "^2.4.0"
+  }
+}
