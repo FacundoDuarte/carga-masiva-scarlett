@@ -6,7 +6,7 @@ const resolver = new Resolver();
 
 resolver.define("createJiraIssuesFromCsv", async (req) => {
     const { csvData } = req.payload;
-
+    console.log('prueba')
     const queue = new Queue({ key: "queue-name" });
 
     const scarlettIds = csvData.map(row => row["ID Scarlett"]);
