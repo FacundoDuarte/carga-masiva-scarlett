@@ -14,6 +14,7 @@ export default function App() {
   const [csvDataCount, setCsvDataCount] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [jobIds, setJobIds] = useState<string[]>([]);
 
   useEffect(() => {
     const initContext = async () => {
@@ -63,6 +64,7 @@ export default function App() {
             projectId: projectId,
           });
           console.log('Tickets creados:', response);
+          setJobIds(response.jobIds);
           setSuccessMessage('Tickets creados/editados con éxito');
         } catch (err) {
           console.error('Error al crear tickets:', err);
@@ -74,6 +76,14 @@ export default function App() {
         setErrorMessage('Error al parsear CSV');
       },
     });
+  };
+
+  const checkJobStatus = async () => {
+    try {
+      await invoke('get-jobs-status', { jobsList: jobIds });
+    } catch (err) {
+      console.error('Error al verificar estado de los jobs:', err);
+    }
   };
 
   return (
@@ -141,6 +151,16 @@ export default function App() {
               <Button type="submit" appearance="primary" isDisabled={submitting}>
                 Crear Tickets
               </Button>
+              
+              {jobIds.length > 0 && (
+                <Button
+                  appearance="default"
+                  onClick={checkJobStatus}
+                  className={css`margin-left: 8px;`}
+                >
+                  Verificar Estado
+                </Button>
+              )}
             </div>
           </form>
         )}
