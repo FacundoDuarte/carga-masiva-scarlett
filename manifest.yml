@@ -1,7 +1,7 @@
 modules:
   consumer:
     - key: queue-consumer
-      queue: queue-name
+      queue: operations-queue
       resolver:
         function: consumer-function
         method: event-listener
@@ -10,7 +10,7 @@ modules:
       resource: main
       resolver:
         function: resolver
-      title: creacion-masiva-scarlett-ui-kit
+      title: Scarlett Bulk Import
   function:
     - key: resolver
       handler: index.handler
@@ -18,12 +18,11 @@ modules:
       handler: consumer.consumerHandler
 resources:
   - key: main
-    path: static/hello-world/build
+    path: static/frontend/build
 permissions:
   scopes:
     - read:jira-work
     - write:jira-work
-    - write:servicedesk-request
 app:
   runtime:
     name: nodejs20.x
