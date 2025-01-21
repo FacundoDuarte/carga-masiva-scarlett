@@ -33,7 +33,6 @@ export const requestTicketsJira = async (payload: Partial<Invoice>) => {
       summary: payload.summary,
       [CF.scarlettId]: [payload.scarlettId],
       [CF.country]: {value: payload.country},
-      [CF.nombreCampo2]: payload.description,
       issuetype: {id: ISSUE_TYPE},
       description: _description(payload.description),
     },

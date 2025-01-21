@@ -4,7 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "nodenext",
     "lib": ["es2017", "dom"],
-    "declaration": true,
+    // "declaration": true,
     "rootDir": "./",
     // "strict": true,
     "esModuleInterop": true,
