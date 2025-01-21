@@ -1,7 +1,7 @@
 import api, {Route, route} from '@forge/api';
 import {Invoice, Issue, QueryPayload} from './types';
 import {AtlassianDocument, TextNode} from './types/atlassian-document';
-import { CF } from './custom_fields';
+import {CF} from './custom_fields';
 
 const ISSUE_TYPE = 10048;
 
@@ -14,11 +14,8 @@ const validateIssueKey = (method: string, issueKey?: string) => {
 
 const _isEdit = (method: string) => method == 'PUT';
 
-export const requestTicketsJira = async (
-  payload: Partial<Invoice>,
-  method: 'POST' | 'PUT',
-  issueKey: string | undefined,
-) => {
+export const requestTicketsJira = async (payload: Partial<Invoice>) => {
+  const {method, key: issueKey} = payload;
   const jiraRoute = _isEdit(method)
     ? route`/rest/api/3/issue/${validateIssueKey(method, issueKey)!}`
     : route`/rest/api/3/issue`;

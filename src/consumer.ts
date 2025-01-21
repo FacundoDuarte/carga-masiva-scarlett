@@ -1,16 +1,20 @@
-import Resolver from '@forge/resolver';
+import Resolver, {ResolverFunction} from '@forge/resolver';
 import api, {route} from '@forge/api';
 import {requestTicketsJira, getExistingIssues} from '../utils/functions';
+import {Invoice} from '@utils/types';
 
 const resolver = new Resolver();
 
-resolver.define('event-listener', async ({payload}) => {
+resolver.define('operations-queue-listener', async (event) => {
+  const payload = event.payload as OperationPayload;
   console.log(payload);
-
-  const method = payload.method;
-  const issueKey = payload.key;
-  await requestTicketsJira(payload, method, issueKey);
+  await requestTicketsJira(payload);
 });
 
 export const consumerHandler: ReturnType<typeof resolver.getDefinitions> =
   resolver.getDefinitions();
+
+type OperationPayload = {
+  method: 'PUT' | 'POST';
+  key: string | undefined;
+} & Partial<Invoice>;

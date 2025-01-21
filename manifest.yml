@@ -4,7 +4,7 @@ modules:
       queue: operations-queue
       resolver:
         function: consumer-function
-        method: event-listener
+        method: operations-queue-listener
   jira:projectPage:
     - key: creacion-masiva-scarlett-ui-kit-hello-world-project-page
       resource: main
