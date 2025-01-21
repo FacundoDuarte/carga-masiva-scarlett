@@ -4,13 +4,20 @@
   "main": "index.js",
   "license": "MIT",
   "private": true,
+  "scripts": {
+    "build:frontend": "cd static/frontend && npm install && npm run build && cd ../..",
+    "clean:frontend": "cd static/frontend && rm -rf build node_modules && cd ../..",
+    "start": "NODE_NO_WARNINGS=1 ts-node src/index.ts"
+  },
   "devDependencies": {
+    "@types/papaparse": "^5.3.15",
     "eslint": "^8.56.0",
     "eslint-plugin-react-hooks": "^4.6.0"
   },
   "dependencies": {
     "@atlaskit/button": "^20.3.8",
     "@atlaskit/form": "^11.0.1",
+    "@forge/events": "^0.9.6",
     "@forge/resolver": "1.6.3",
     "papaparse": "^5.5.1",
     "react-drag-drop-files": "^2.4.0"
