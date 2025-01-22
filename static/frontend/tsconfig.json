@@ -12,14 +12,14 @@
     // "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@types/*": ["utils/types/*"],
-      "@utils/*": ["utils/*"],
+      // "@types/*": ["src/types/*"],
+      // "@utils/*": ["utils/*"],
       "@src/*": ["src/*"],
-      "@components/*": ["static/frontend/src/components/*"]
+      "@components/*": ["src/components/*"]
     },
     "jsx": "react"
   },
   // "include": ["src/**/*", "utils/**/*", "static/frontend/src/**/*"],
-  "include": ["src/**/*", "utils/**/*"],
-  "exclude": ["node_modules", "static/**/build", "dist"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
 }

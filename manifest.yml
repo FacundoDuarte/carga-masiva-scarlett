@@ -23,6 +23,9 @@ permissions:
   scopes:
     - read:jira-work
     - write:jira-work
+  content:
+    styles:
+      - "unsafe-inline"
 app:
   runtime:
     name: nodejs20.x

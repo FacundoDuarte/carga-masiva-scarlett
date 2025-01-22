@@ -1,11 +1,14 @@
 import React, {useState, useEffect} from 'react';
 import Form, {Field, ErrorMessage} from '@atlaskit/form';
 import Textfield from '@atlaskit/textfield';
-import {Button, Spinner} from '@forge/react';
+import {Button} from '@forge/react';
 import Papa from 'papaparse';
 import {invoke, view} from '@forge/bridge';
 import {css} from '@emotion/css';
 import {FullContext} from '@forge/bridge/out/types';
+import {Invoice, Job, JobStatus} from './types';
+import Lozenge from '@atlaskit/lozenge';
+// import {JobCard} from './components/JobCard';
 
 export default function App() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -14,7 +17,9 @@ export default function App() {
   const [csvDataCount, setCsvDataCount] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [jobIds, setJobIds] = useState<string[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [shouldCheck, setShouldCheck] = useState(false);
 
   useEffect(() => {
     const initContext = async () => {
@@ -28,14 +33,28 @@ export default function App() {
     initContext();
   }, []);
 
+  useEffect(() => {
+    if (shouldCheck) {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      checkJobStatusAutomatically();
+    }
+    
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [shouldCheck]);
+
   // Si no se encuentra el proyecto dentro de ExtensionData, se tira una excepción
   if (!context?.extension || !context.extension.project?.id) {
-    return <Spinner />;
+    return <></>;
   }
   const projectId = context.extension.project.id;
-  console.log(`projectId: ${projectId}`);
-  const handleFileChange = (e: any) => {
-    const file = e.target.files[0];
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
     setCsvFile(file);
   };
 
@@ -56,35 +75,73 @@ export default function App() {
       complete: async (results) => {
         const parsedData = results.data;
         setCsvDataCount(parsedData.length); // Set the count of CSV data
-        console.log('CSV parseado:', parsedData);
         try {
-          // Invoca la función del backend que crea tickets
-          const response = await invoke('issue-operations-from-csv', {
-            csvData: parsedData,
-            projectId: projectId,
-          });
-          console.log('Tickets creados:', response);
-          setJobIds(response.jobIds);
-          setSuccessMessage('Tickets creados/editados con éxito');
+          const jobList = await initOperationFromCsv(parsedData, projectId);
+          console.log('Job List:', jobList);
+          setJobs(
+            jobList.map((job) => ({
+              status: JobStatus.inProgress,
+              id: job.jobId,
+              ticket: job.ticket,
+            })),
+          );
+          setSuccessMessage('Operaciones iniciadas con éxito');
+          setShouldCheck(true);
         } catch (err) {
           console.error('Error al crear tickets:', err);
-          setErrorMessage('Error al crear tickets');
+          setErrorMessage(`Error al crear tickets: ${err}`);
         }
       },
       error: (err) => {
         console.error('Error al parsear CSV:', err);
-        setErrorMessage('Error al parsear CSV');
+        setErrorMessage(`Error al parsear CSV: ${err}`);
       },
     });
   };
 
-  const checkJobStatus = async () => {
-    try {
-      await invoke('get-jobs-status', { jobsList: jobIds });
-    } catch (err) {
-      console.error('Error al verificar estado de los jobs:', err);
-    }
+  const checkJobStatusAutomatically = () => {
+    console.log('se ejecutó el checkJobs');
+    const newIntervalId = setInterval(async () => {
+      try {
+        const jobIds = jobs.map(job => job.id);
+        
+        if (jobIds.length === 0) {
+          clearInterval(newIntervalId);
+          setIntervalId(null);
+          setShouldCheck(false);
+          return;
+        }
+
+        const updatedJobs: Job[] = await getJobsStatus(jobIds);
+        console.log('Updated Jobs:', updatedJobs);
+
+        setJobs(prevJobs => 
+          prevJobs.map(job => {
+            const updatedJob = updatedJobs.find(updated => updated.id === job.id);
+            return updatedJob ? {
+              ...job,
+              status: updatedJob.status
+            } : job;
+          })
+        );
+
+        if (updatedJobs.every(job => job.status === JobStatus.success)) {
+          clearInterval(newIntervalId);
+          setIntervalId(null);
+          setShouldCheck(false);
+        }
+      } catch (err) {
+        console.error('Error al verificar estado de los jobs:', err);
+        clearInterval(newIntervalId);
+        setIntervalId(null);
+        setShouldCheck(false);
+      }
+    }, 2000);
+
+    setIntervalId(newIntervalId);
   };
+
+  const allJobsSuccessful = jobs.every((job) => job.status === JobStatus.success);
 
   return (
     <div
@@ -144,27 +201,78 @@ export default function App() {
               )}
             </Field>
 
-            <div
-              className={css`
-                margin-top: 16px;
-              `}>
-              <Button type="submit" appearance="primary" isDisabled={submitting}>
+            <div>
+              <Button
+                type="submit"
+                appearance="primary"
+                isDisabled={submitting || !allJobsSuccessful}>
                 Crear Tickets
               </Button>
-              
-              {jobIds.length > 0 && (
-                <Button
-                  appearance="default"
-                  onClick={checkJobStatus}
-                  className={css`margin-left: 8px;`}
-                >
-                  Verificar Estado
-                </Button>
-              )}
             </div>
           </form>
         )}
       </Form>
+
+      {jobs && jobs.length > 0 && (
+        <div>
+          <table className="table-auto w-full border-collapse border border-gray-200">
+            <thead>
+              <tr>
+                <th className="border border-gray-300 px-4 py-2">Summary</th>
+                <th className="border border-gray-300 px-4 py-2">Description</th>
+                <th className="border border-gray-300 px-4 py-2">Method</th>
+                <th className="border border-gray-300 px-4 py-2">Estado</th>
+                <th className="border border-gray-300 px-4 py-2">Issue Key</th>
+              </tr>
+            </thead>
+            <tbody>
+              {jobs.map((job) => (
+                <JobCard key={job.id} job={job} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
+
+async function initOperationFromCsv(
+  parsedData,
+  projectId: string | number,
+): Promise<{ticket: Partial<Invoice>; jobId: string}[]> {
+  const result = (await invoke('issue-operations-from-csv', {
+    csvData: parsedData,
+    projectId: projectId,
+  })) as {ticket: Partial<Invoice>; jobId: string}[];
+  console.log('Result from initOperationFromCsv:', result);
+  return result;
+}
+
+async function getJobsStatus(jobIds: string[]): Promise<Job[]> {
+  console.log('Jobs to check status:', jobIds);
+  const result = await invoke('get-jobs-status', {jobsList: jobIds}) as Job[];
+  console.log('Result from invoke:', result);
+  return result;
+}
+
+interface JobCardProps {
+  job: Job;
+}
+
+const JobCard: React.FC<JobCardProps> = ({job}) => {
+  const appearance = job.status === JobStatus.success ? 'success' : 'inprogress';
+  const statusText = job.status === JobStatus.success ? 'Finalizado' : 'En proceso';
+
+  return (
+    <tr className="bg-white border-b border-gray-200">
+      <td className="border border-gray-300 px-4 py-2">{job.ticket?.summary || 'N/A'}</td>
+      <td className="border border-gray-300 px-4 py-2">{job.ticket?.description || 'N/A'}</td>
+      <td className="border border-gray-300 px-4 py-2">{job.ticket?.method || 'N/A'}</td>
+      <td className="border border-gray-300 px-4 py-2">
+        <Lozenge appearance={appearance}>{statusText}</Lozenge>
+      </td>
+      <td className="border border-gray-300 px-4 py-2">{job.ticket?.key || 'N/A'}</td>
+    </tr>
+  );
+};

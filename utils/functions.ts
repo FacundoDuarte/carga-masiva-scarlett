@@ -1,4 +1,4 @@
-import api, {Route, route} from '@forge/api';
+import api, {route} from '@forge/api';
 import {Invoice, Issue, QueryPayload} from './types';
 import {AtlassianDocument, TextNode} from './types/atlassian-document';
 import {CF} from './custom_fields';

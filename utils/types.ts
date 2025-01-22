@@ -10,6 +10,18 @@ export type Invoice = {
   key?: string;
 };
 
+export const enum JobStatus {
+  todo = 'todo',
+  inProgress = 'inProgress',
+  success = 'success',
+  failed = 'failed',
+}
+
+export type Job = {
+  id: string;
+  status: JobStatus;
+};
+
 export type QueryPayload = {
   issues: Issue[];
 };

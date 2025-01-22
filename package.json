@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "build:frontend": "cd static/frontend && npm install && npm run build && cd ../..",
-    "clean:frontend": "cd static/frontend && rm -rf build node_modules && cd ../..",
+    "clean:frontend": "cd static/frontend && rm -rf build node_modules package-lock.json && cd ../..",
     "start": "NODE_NO_WARNINGS=1 ts-node src/index.ts"
   },
   "devDependencies": {
