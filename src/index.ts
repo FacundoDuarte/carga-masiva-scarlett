@@ -44,6 +44,8 @@ resolver.define('issue-operations-from-csv', async (req) => {
     }
     return ticketList;
   } catch (error) {
+    console.log("error: " + error);
+    
     await jobProgress.cancel();
   }
 });
@@ -71,6 +73,7 @@ resolver.define('get-jobs-status', async ({payload, context}: JobStatusRequest) 
 });
 
 export const handler: ReturnType<typeof resolver.getDefinitions> = resolver.getDefinitions();
+
 async function _getJobStatus(jobId: string): Promise<JobStatus> {
   const request = await queue.getJob(jobId).getStats();
   const statusList = await request.json();

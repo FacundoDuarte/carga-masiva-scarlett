@@ -1,13 +1,13 @@
 import React, {useState, useEffect} from 'react';
 import Form, {Field, ErrorMessage} from '@atlaskit/form';
 import Textfield from '@atlaskit/textfield';
-import {Button} from '@forge/react';
+import Button from '@atlaskit/button/new';
 import Papa from 'papaparse';
 import {invoke, view} from '@forge/bridge';
 import {css} from '@emotion/css';
 import {FullContext} from '@forge/bridge/out/types';
 import {Invoice, Job, JobStatus} from './types';
-import Lozenge from '@atlaskit/lozenge';
+import Lozenge, { ThemeAppearance } from '@atlaskit/lozenge';
 // import {JobCard} from './components/JobCard';
 
 export default function App() {
@@ -124,7 +124,7 @@ export default function App() {
             } : job;
           })
         );
-
+        
         if (updatedJobs.every(job => job.status === JobStatus.success)) {
           clearInterval(newIntervalId);
           setIntervalId(null);
@@ -201,14 +201,13 @@ export default function App() {
               )}
             </Field>
 
-            <div>
               <Button
-                type="submit"
+                type='submit'
                 appearance="primary"
                 isDisabled={submitting || !allJobsSuccessful}>
-                Crear Tickets
+                Crear Ticket
               </Button>
-            </div>
+              
           </form>
         )}
       </Form>
@@ -234,6 +233,7 @@ export default function App() {
         </div>
       )}
     </div>
+ 
   );
 }
 
@@ -261,8 +261,20 @@ interface JobCardProps {
 }
 
 const JobCard: React.FC<JobCardProps> = ({job}) => {
-  const appearance = job.status === JobStatus.success ? 'success' : 'inprogress';
-  const statusText = job.status === JobStatus.success ? 'Finalizado' : 'En proceso';
+  function getAppearanceAndText(status: JobStatus): {appearance: ThemeAppearance , text: string} {
+    switch (status) {
+      case JobStatus.success:
+        return { appearance: 'success', text: 'Finalizado' };
+      case JobStatus.failed:
+        return { appearance: 'removed', text: 'Error' };
+      case JobStatus.todo:
+        return { appearance: 'default', text: 'Pendiente' };
+      default:
+        return { appearance: 'inprogress', text: 'En proceso' };
+    }
+  }
+
+  const { appearance, text } = getAppearanceAndText(job.status);
 
   return (
     <tr className="bg-white border-b border-gray-200">
@@ -270,7 +282,7 @@ const JobCard: React.FC<JobCardProps> = ({job}) => {
       <td className="border border-gray-300 px-4 py-2">{job.ticket?.description || 'N/A'}</td>
       <td className="border border-gray-300 px-4 py-2">{job.ticket?.method || 'N/A'}</td>
       <td className="border border-gray-300 px-4 py-2">
-        <Lozenge appearance={appearance}>{statusText}</Lozenge>
+        <Lozenge appearance={appearance}>{text}</Lozenge>
       </td>
       <td className="border border-gray-300 px-4 py-2">{job.ticket?.key || 'N/A'}</td>
     </tr>
