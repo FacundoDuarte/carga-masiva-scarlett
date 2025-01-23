@@ -5,21 +5,21 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "build:frontend": "cd static/frontend && npm install && npm run build && cd ../..",
+    "build:frontend": "cd static/frontend && bun install && bun run build && cd ../..",
     "clean:frontend": "cd static/frontend && rm -rf build node_modules package-lock.json && cd ../..",
-    "build": "npm install",
+    "build": "bun install",
     "clean": "rm -rf build node_modules package-lock.json",
     "start": "NODE_NO_WARNINGS=1 ts-node src/index.ts"
   },
   "devDependencies": {
     "@forge/api": "^4.1.2",
     "@types/papaparse": "^5.3.15",
-    "eslint": "^8.56.0",
-    "eslint-plugin-react-hooks": "^4.6.0"
+    "eslint": "^8.57.1",
+    "eslint-plugin-react-hooks": "^4.6.2"
   },
   "dependencies": {
-    "@atlaskit/button": "^20.3.8",
-    "@atlaskit/form": "^11.0.1",
+    "@atlaskit/button": "^20.3.10",
+    "@atlaskit/form": "^11.0.2",
     "@forge/events": "^0.9.6",
     "@forge/react": "^10.10.1",
     "@forge/resolver": "^1.6.3",

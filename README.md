@@ -11,18 +11,23 @@ See [Set up Forge](https://developer.atlassian.com/platform/forge/set-up-forge/)
 ## Quick start
 - Install dependecies (inside root directory)
 ```
-npm install
+bun install
 ```
 - Install dependencies (inside of the `static/hello-world` directory)::
 ```
-npm install
+bun install
+
+O sino desde la raiz:
+
+bun build:frontend
+bun clean:frontend ## para hacer un clean
 ```
 
 - Modify your app by editing the files in `static/hello-world/src/`.
 
 - Build your app (inside of the `static/hello-world` directory):
 ```
-npm run build
+bun run build
 ```
 
 - Deploy your app by running:
