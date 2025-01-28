@@ -3,7 +3,6 @@ import Form, { Field, ErrorMessage } from "@atlaskit/form";
 import TextField from "@atlaskit/textfield";
 import Button from "@atlaskit/button/new";
 import Papa from "papaparse";
-import { css, jsx } from "@emotion/react";
 import { invoke, view, router } from "@forge/bridge";
 import { FullContext } from "@forge/bridge/out/types";
 import { Invoice, Issue, Job, JobStatus } from "./types";
@@ -284,75 +283,83 @@ export default function App() {
     // checkJobStatus: actualiza jobs de la "página visible"
     // ----------------------
     const checkJobStatusAutomatically = () => {
-      const newIntervalId = setInterval(async () => {
-        try {
-          const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
-          const endIndex = startIndex + ROWS_PER_PAGE;
-          const pendingJobs = jobs.filter(j => j.status !== JobStatus.success && j.status !== JobStatus.failed);
+        const newIntervalId = setInterval(async () => {
+            try {
+                const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
+                const endIndex = startIndex + ROWS_PER_PAGE;
+                const pendingJobs = jobs.filter(
+                    (j) =>
+                        j.status !== JobStatus.success &&
+                        j.status !== JobStatus.failed
+                );
 
-    
-          // Si no queda ninguno en proceso, detiene el polling
-          if (pendingJobs.length === 0) {
-            clearInterval(newIntervalId);
-            setIntervalId(null);
-            setShouldCheck(false);
-            return;
-          }
-    
-          // 2) Mapeamos solo esos pendingJobs a jobIds
-          const jobIds = pendingJobs.map((job) => job.id);
-    
-          // Llamamos al backend para ver su estado en la cola
-          const updatedJobList: Job[] = await getJobsStatus(jobIds);
-    
-          // Sacamos las issueKeys de esos 'pendingJobs' que tengan ticket.key
-          const issueKeys = pendingJobs
-            .map((job) => job.ticket.key)
-            .filter(Boolean) as string[];
-    
-          // Llamamos a get-issue-status
-          const issuesFromJira = await _getIssueStatus(issueKeys);
-    
-          // Combinar ambos
-          setJobs((prev) =>
-            prev.map((job) => {
-              // Si no está en los 'pendingJobs', no lo toques
-              if (!jobIds.includes(job.id)) {
-                return job;
-              }
-    
-              // a) estado de la cola
-              const updatedCola = updatedJobList.find((u) => u.id === job.id);
-    
-              // b) estado real en Jira
-              let updatedJiraStatus;
-              if (job.ticket?.key) {
-                const match = issuesFromJira.find((iss) => iss.key === job.ticket.key);
-                updatedJiraStatus = match?.fields.status; // ...
-              }
-    
-              return {
-                ...job,
-                status: updatedCola ? updatedCola.status : job.status,
-                ticket: {
-                  ...job.ticket,
-                  status: updatedJiraStatus,
-                },
-              };
-            })
-          );
-        } catch (err) {
-          console.error("Error al verificar estado de los jobs:", err);
-          clearInterval(newIntervalId);
-          setIntervalId(null);
-          setShouldCheck(false);
-        } finally {
-          setIsLoading(false);
-        }
-    }, 60000);
-      setIntervalId(newIntervalId);
+                // Si no queda ninguno en proceso, detiene el polling
+                if (pendingJobs.length === 0) {
+                    clearInterval(newIntervalId);
+                    setIntervalId(null);
+                    setShouldCheck(false);
+                    return;
+                }
+
+                // 2) Mapeamos solo esos pendingJobs a jobIds
+                const jobIds = pendingJobs.map((job) => job.id);
+
+                // Llamamos al backend para ver su estado en la cola
+                const updatedJobList: Job[] = await getJobsStatus(jobIds);
+
+                // Sacamos las issueKeys de esos 'pendingJobs' que tengan ticket.key
+                const issueKeys = pendingJobs
+                    .map((job) => job.ticket.key)
+                    .filter(Boolean) as string[];
+
+                // Llamamos a get-issue-status
+                const issuesFromJira = await _getIssueStatus(issueKeys);
+
+                // Combinar ambos
+                setJobs((prev) =>
+                    prev.map((job) => {
+                        // Si no está en los 'pendingJobs', no lo toques
+                        if (!jobIds.includes(job.id)) {
+                            return job;
+                        }
+
+                        // a) estado de la cola
+                        const updatedCola = updatedJobList.find(
+                            (u) => u.id === job.id
+                        );
+
+                        // b) estado real en Jira
+                        let updatedJiraStatus;
+                        if (job.ticket?.key) {
+                            const match = issuesFromJira.find(
+                                (iss) => iss.key === job.ticket.key
+                            );
+                            updatedJiraStatus = match?.fields.status; // ...
+                        }
+
+                        return {
+                            ...job,
+                            status: updatedCola
+                                ? updatedCola.status
+                                : job.status,
+                            ticket: {
+                                ...job.ticket,
+                                status: updatedJiraStatus,
+                            },
+                        };
+                    })
+                );
+            } catch (err) {
+                console.error("Error al verificar estado de los jobs:", err);
+                clearInterval(newIntervalId);
+                setIntervalId(null);
+                setShouldCheck(false);
+            } finally {
+                setIsLoading(false);
+            }
+        }, 60000);
+        setIntervalId(newIntervalId);
     };
-    
 
     // ----------------------
     // Definición de columnas de DynamicTable
@@ -417,14 +424,12 @@ export default function App() {
     // ----------------------
     return (
         <div style={{ margin: "16px auto", fontFamily: "sans-serif" }}>
-            <h1 style={{ color: "#fff" }}>
-                Sube el archivo
-            </h1>
+            <h1 style={{ color: "#fff" }}>Sube el archivo</h1>
 
-            {csvDataCount !== null && (
-                <p style={{ color: "#36b37e" }}>
-                    Número de elementos en el CSV: {csvDataCount}
-                </p>
+            {!successMessage && !errorMessage && csvDataCount !== null && (
+                <SectionMessage appearance="information">
+                    Número de elementos en el archivo: {csvDataCount}
+                </SectionMessage>
             )}
 
             {successMessage && (
@@ -488,8 +493,8 @@ export default function App() {
                     page={currentPage}
                     defaultPage={1}
                     onSetPage={(newPage) => {
-                      setCurrentPage(newPage);
-                      setShouldCheck(true);
+                        setCurrentPage(newPage);
+                        setShouldCheck(true);
                     }}
                 />
             )}
