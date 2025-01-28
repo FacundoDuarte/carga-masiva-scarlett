@@ -1,8 +1,43 @@
-// ... existing code ...
-
-export const CF: { [key: string]: string } = {
-    "scarlettId": "customfield_10378",
-    "country": "customfield_10165",
+export const enum CF {
+    summary = "summary",
+    pais = "customfield_17707",
+    uuid = "customfield_18766",
+    tipo_documento = "customfield_19888",
+    estado_validaciones = "customfield_19889",
+    proveedor = "customfield_19890",
+    proveedor_id = "customfield_14357",
+    fecha_recepcion = "customfield_19891",
+    asignacion_sap_sku = "customfield_19892",
+    estado_integracion_sap = "customfield_19893",
+    estado_conciliacion = "customfield_19894",
+    estado_solicitudes = "customfield_19895",
+    orden_de_compra = "customfield_16985",
+    fecha_emision = "customfield_19896",
+    is = "customfield_17745",
+    estado_de_envio = "customfield_19897",
+    monto = "customfield_19195",
+    estado_integracion_sap_final = "customfield_19898",
+    scarlett_id = "customfield_19899",
 };
 
-
+export const enum row {
+    summary = "summary",
+    pais = "pais",
+    uuid = "uuid",
+    tipo_documento = "tipo de documento",
+    estado_validaciones = "estado de validaciones",
+    proveedor = "proveedor",
+    proveedor_id = "proveedor id",
+    fecha_recepcion = "fecha de recepcion",
+    asignacion_sap_sku = "asignacion de sap sku",
+    estado_integracion_sap = "estado integracion de sap",
+    estado_conciliacion = "estado de conciliacion",
+    estado_solicitudes = "estado de solicitudes",
+    orden_de_compra = "orden de compra",
+    fecha_emision = "fecha de emision",
+    is = "is",
+    estado_de_envio = "estado de envio",
+    monto = "monto",
+    estado_integracion_sap_final = "estado integracion de sap final",
+    scarlett_id = "scarlett id"
+}

@@ -22,8 +22,6 @@
     "@atlaskit/form": "^11.0.2",
     "@forge/events": "^0.9.6",
     "@forge/react": "^10.10.1",
-    "@forge/resolver": "^1.6.3",
-    "papaparse": "^5.5.1",
-    "react-drag-drop-files": "^2.4.0"
+    "@forge/resolver": "^1.6.3"
   }
 }

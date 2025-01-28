@@ -1,13 +1,61 @@
-Summary	ID Scarlett	Description	Pais
-Prueba1	#AthyrgAsdasdA	hola hola	chile
-Prueba2	#AArtretdfB	hola holasdsad	bolivia
-Prueba den	#ScarletttDen	hola hola	bolivia
-Prueba4	#AdfgdAA	hola hola	bolivia
-Prueba5	#AAfgddfB	hola hola	bolivia
-Prueba6	#AAfgfdB	hola hola hola	bolivia
-Prueba7	#Abfgvcfd	hola hola	bolivia
-Prueba8	#AfgdAdfB	hola hola flor	bolivia
-Prueba9	#gbgfbgff	hola hola	bolivia
-Prueba10	#AdfsAA	hola hola	bolivia
-Prueba11	#fdsAAdfB	hola hola	bolivia
-Prueba12	#AAgfdBB	hola hola	bolivia
+summary,pais,uuid,tipo de documento,estado de validaciones,proveedor,proveedor id,fecha de recepcion,asignacion de sap sku,estado integracion de sap,estado de conciliacion,estado de solicitudes,orden de compra,fecha de emision,is,estado de envio,monto,estado integracion de sap final,scarlett id
+Summary 1,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett001
+Summary 2,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett002
+Summary 3,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett003
+Summary 4,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett004
+Summary 5,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett005
+Summary 6,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett006
+Summary 7,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett007
+Summary 8,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett008
+Summary 9,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett009
+Summary 10,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett010
+Summary 11,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett011
+Summary 12,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett012
+Summary 13,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett013
+Summary 14,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett014
+Summary 15,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett015
+Summary 16,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett016
+Summary 17,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett017
+Summary 18,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett018
+Summary 19,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett019
+Summary 20,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett020
+Summary 1,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett21
+Summary 2,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett22
+Summary 3,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett23
+Summary 4,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett24
+Summary 5,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett25
+Summary 6,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett26
+Summary 7,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett27
+Summary 8,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett28
+Summary 9,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett29
+Summary 10,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett30
+Summary 11,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett31
+Summary 12,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett32
+Summary 13,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett33
+Summary 14,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett34
+Summary 15,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett35
+Summary 16,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett36
+Summary 17,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett37
+Summary 18,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett38
+Summary 19,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett39
+Summary 20,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett40
+Summary 1,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett41
+Summary 2,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett42
+Summary 3,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett43
+Summary 4,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett44
+Summary 5,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett45
+Summary 6,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett46
+Summary 7,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett47
+Summary 8,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett48
+Summary 9,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett49
+Summary 10,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett50
+Summary 11,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett51
+Summary 12,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett52
+Summary 13,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett53
+Summary 14,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett54
+Summary 15,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett55
+Summary 16,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett56
+Summary 17,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett57
+Summary 18,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett58
+Summary 19,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett59
+Summary 20,Argentina,46f3e29c-8577-476d-8b4a-cc2f4f067cf1,Orden,Pendiente,Proveedor 4,1658,2025-08-25,SKU789,Error,No Conciliado,Pendiente,OC34640,2023-09-11,IS650,Rechazado,10,Finalizado,Scarlett60

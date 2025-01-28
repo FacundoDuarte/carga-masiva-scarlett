@@ -3,7 +3,7 @@ import {Invoice, Issue, QueryPayload} from './types';
 import {AtlassianDocument, TextNode} from './types/atlassian-document';
 import {CF} from './custom_fields';
 
-const ISSUE_TYPE = 10048;
+const ISSUE_TYPE = 11871;
 
 const validateIssueKey = (method: string, issueKey?: string) => {
   if (method.toLowerCase() === 'PUT' && !issueKey) {
@@ -20,23 +20,32 @@ export const requestTicketsJira = async (payload: Partial<Invoice>) => {
     ? route`/rest/api/3/issue/${validateIssueKey(method, issueKey)!}`
     : route`/rest/api/3/issue`;
 
-  const payloadData = {
-    [CF.scarlettId]: [payload.scarlettId],
-    [CF.country]: {value: payload.country},
-    [CF.nombreCampo2]: payload.description,
-  };
-
   const jsonBody: Issue = {
     key: issueKey,
     fields: {
       project: {id: payload.projectId},
       summary: payload.summary,
-      [CF.scarlettId]: [payload.scarlettId],
-      [CF.country]: {value: payload.country},
+      [CF.pais]: {value: payload.pais},
+      [CF.uuid]: payload.uuid,
+      [CF.tipo_documento]: payload.tipo_documento,
+      [CF.estado_validaciones]: payload.estado_validaciones,
+      [CF.proveedor_id]: payload.proveedor_id,
+      [CF.fecha_recepcion]: payload.fecha_recepcion,
+      [CF.asignacion_sap_sku]: payload.asignacion_sap_sku,
+      [CF.estado_integracion_sap]: payload.estado_integracion_sap,
+      [CF.estado_conciliacion]: payload.estado_conciliacion,
+      [CF.estado_solicitudes]: payload.estado_solicitudes,
+      [CF.orden_de_compra]: payload.orden_de_compra,
+      [CF.fecha_emision]: payload.fecha_emision,
+      [CF.is]: payload.is,
+      [CF.estado_de_envio]: payload.estado_de_envio,
+      [CF.monto]: Number(payload.monto),
+      [CF.estado_integracion_sap_final]: payload.estado_integracion_sap_final,
+      [CF.scarlett_id]: [payload.scarlettId],
       issuetype: {id: ISSUE_TYPE},
-      description: _description(payload.description),
     },
   };
+  
   const response = await api.asApp().requestJira(jiraRoute, {
     method,
     headers: {
@@ -61,16 +70,17 @@ export const requestTicketsJira = async (payload: Partial<Invoice>) => {
   return;
 };
 
-export async function getExistingIssues(query: string): Promise<Issue[]> {
-  const fields = 'summary,description,customfield_10378';
+export async function getExistingIssues(query: string, fields: string): Promise<Issue[]> {
   const response = await api
     .asApp()
     .requestJira(route`/rest/api/3/search/jql?jql=${query}&fields=${fields}`, {
       method: 'GET',
     });
   const data = (await response.json()) as QueryPayload;
+  
   return data.issues;
 }
+
 
 const _description = (description: string | TextNode | undefined): AtlassianDocument => {
   const _isAdf = (body: any): body is TextNode =>
