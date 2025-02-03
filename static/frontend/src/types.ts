@@ -4,6 +4,13 @@ export const enum JobStatus {
   success = 'success',
   failed = 'failed',
 }
+export const enum Appearance {
+  default = 'default',
+  inProgress = 'inProgress',
+  moved = 'moved',
+  removed = 'removed',
+  success = 'success',
+}
 
 export interface Job {
   id: string;
@@ -34,7 +41,7 @@ export type Invoice = {
   scarlettId: string;
   method: string;
   key?: string;
-  status?: {name: string, statusCategory: {key: string, name: string}};
+  status?: {name: string; statusCategory: {key: string; name: string}};
 };
 
 export type Issue = {
@@ -43,7 +50,7 @@ export type Issue = {
     project: {id: number};
     summary: string | undefined;
     issuetype: {id: number};
-    status?: {statusCategory: {key: string, name: string}}
+    status?: {statusCategory: {key: string; name: string}};
   } & CustomField;
 };
 type CustomField = {

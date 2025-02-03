@@ -1,140 +1,159 @@
-import Resolver from "@forge/resolver";
-import { Queue } from "@forge/events";
-import { Invoice, Issue, Job, JobStatus } from "../utils/types";
-import { getExistingIssues } from "../utils/functions";
-import { CF, row } from "../utils/custom_fields";
-import { storage } from "@forge/api";
+import Resolver from '@forge/resolver';
+import {Queue} from '@forge/events';
+import {Invoice, Issue, Job, JobStatus} from '../utils/types';
+import {getExistingIssues} from '../utils/functions';
+import {CF, row} from '../utils/custom_fields';
+import {storage} from '@forge/api';
+import api, {route} from '@forge/api';
+import {S3Client, GetObjectCommand, PutObjectCommand} from '@aws-sdk/client-s3';
+import {getSignedUrl} from '@aws-sdk/s3-request-presigner';
+import fetch from 'node-fetch';
+import Papa from 'papaparse';
 
 const resolver = new Resolver();
-const queue = new Queue({ key: "operations-queue" });
+const queue = new Queue({key: 'operations-queue'});
 
-resolver.define("issue-operations-from-csv", async (req) => {
-    const jobProgress = queue.getJob(req.context.jobId);
-    try {
-        const { csvData, projectId } = req.payload;
-        const invoiceIdList: string[] = csvData.map(
-            (row: { "ID Scarlett": string }) => row["scarlett id"]
-        );
 
-        const formattedQuery = `"scarlett id[labels]" in (${invoiceIdList
-            .map((id) => `"${id}"`)
-            .join(", ")})`;
-        const existingIssues = await getExistingIssues(
-            formattedQuery,
-            "customfield_19899"
-        );
 
-        const ticketList: { ticket: Partial<Invoice>; jobId: string }[] = [];
-
-        for (const csvRow of csvData) {
-            let ticket: Partial<Invoice> = {
-                summary: csvRow[row.summary] ?? "",
-                projectId: projectId,
-                uuid: csvRow[row.uuid] ?? "",
-                pais: csvRow[row.pais] ?? "",
-                tipo_documento: csvRow[row.tipo_documento] ?? "",
-                estado_validaciones: csvRow[row.estado_validaciones] ?? "",
-                proveedor: csvRow[row.proveedor] ?? "",
-                proveedor_id: csvRow[row.proveedor_id] ?? "",
-                fecha_recepcion: csvRow[row.fecha_recepcion] ?? "",
-                asignacion_sap_sku: csvRow[row.asignacion_sap_sku] ?? "",
-                estado_integracion_sap:
-                    csvRow[row.estado_integracion_sap] ?? "",
-                estado_conciliacion: csvRow[row.estado_conciliacion] ?? "",
-                estado_solicitudes: csvRow[row.estado_solicitudes] ?? "",
-                orden_de_compra: csvRow[row.orden_de_compra] ?? "",
-                fecha_emision: csvRow[row.fecha_emision] ?? "",
-                is: csvRow[row.is] ?? "",
-                estado_de_envio: csvRow[row.estado_de_envio] ?? "",
-                monto: csvRow[row.monto] ?? "",
-                estado_integracion_sap_final:
-                    csvRow[row.estado_integracion_sap_final] ?? "",
-                scarlettId: csvRow[row.scarlett_id] ?? "",
-                method: existingIssues.some(
-                    (issue) =>
-                        issue.fields.customfield_19899 == csvRow["scarlett id"]
-                )
-                    ? "PUT"
-                    : "POST",
-            };
-            if (ticket.method == "PUT") {
-                // Agregamos la key en caso de ser una edición
-                let iss: Issue = existingIssues.filter(
-                    (issue) =>
-                        issue.fields.customfield_19899 == csvRow["scarlett id"]
-                )[0];
-                ticket.key = iss.key;
-            }
-            const jobId = await queue.push(ticket);
-            ticketList.push({ ticket: ticket, jobId });
-        }
-        return ticketList;
-    } catch (error) {
-        console.log("error: " + error);
-
-        await jobProgress.cancel();
-    }
+resolver.define('issue-operations-from-csv', async (req) => {
+  const jobProgress = queue.getJob(req.context.jobId);
+  try {
+    const {s3Key, projectId} = req.payload;
+    return await handleIssueOperationsFromCsv(s3Key, projectId);
+  } catch (error) {
+    await jobProgress.cancel();
+    throw error;
+  }
 });
 
 interface JobStatusRequest {
-    payload: {
-        jobsList: string[];
-    };
-    context: any;
+  payload: {
+    jobsList: string[];
+  };
+  context: any;
 }
 
-resolver.define(
-    "get-jobs-status",
-    async ({ payload, context }: JobStatusRequest) => {
-        const { jobsList } = payload;
-        const updatedJobs: Job[] = [];
+resolver.define('get-jobs-status', async ({payload, context}: JobStatusRequest) => {
+  const {jobsList} = payload;
+  const updatedJobs: Job[] = [];
 
-        for (const jobId of jobsList) {
-            const jobStatus = await _getJobStatus(jobId);
-            updatedJobs.push({
-                id: jobId,
-                status: jobStatus,
-            });
-        }
-        return updatedJobs;
-    }
-);
-
-resolver.define("get-issue-key", async ({ payload, context }) => {
-    return await storage.get(`scarlett-${payload.id}`);
+  for (const jobId of jobsList) {
+    const jobStatus = await _getJobStatus(jobId);
+    updatedJobs.push({
+      id: jobId,
+      status: jobStatus,
+    });
+  }
+  return updatedJobs;
 });
 
-resolver.define("get-issue-status", async ({ payload, context }) => {
-    const formattedQuery = `key in (${payload.issueKeys
-        .map((id) => `"${id}"`)
-        .join(", ")})`;
-
-    // Obtenemos las incidencias desde Jira, pidiendo 'status' en fields
-    const issues = await getExistingIssues(formattedQuery, "status");
-
-    // ANTES devolvías solo appearance y name
-    return issues.map((issue) => ({
-        key: issue.key,
-        fields: {
-          status: issue.fields.status,
-        },
-    }));
+resolver.define('get-issue-key', async ({payload, context}) => {
+  return await storage.get(`scarlett-${payload.id}`);
 });
 
-export const handler: ReturnType<typeof resolver.getDefinitions> =
-    resolver.getDefinitions();
+resolver.define('get-issue-status', async ({payload, context}) => {
+  const formattedQuery = `key in (${payload.issueKeys.map((id) => `"${id}"`).join(', ')})`;
+
+  // Obtenemos las incidencias desde Jira, pidiendo 'status' en fields
+  const issues = await getExistingIssues(formattedQuery, 'status');
+
+  // ANTES devolvías solo appearance y name
+  return issues.map((issue) => ({
+    key: issue.key,
+    fields: {
+      status: issue.fields.status,
+    },
+  }));
+});
+
+resolver.define('download-template', async ({payload, context}: JobStatusRequest) => {
+  const client = new S3Client({
+    region: 'us-east-1', // asegúrate de que esta sea tu región
+    credentials: {
+      accessKeyId: 'AKIAXWNXRCON5E6GFRRX',
+      secretAccessKey: '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',
+    },
+  });
+
+  const command = new GetObjectCommand({
+    Bucket: 'issue-reminder-app-dev-issrem-529202746267',
+    Key: 'Carga Masiva_Master File Enero.xlsx',
+  });
+
+  // Generar URL firmada
+  const signedUrl = await getSignedUrl(client, command, {
+    expiresIn: 3600,
+  });
+
+  return signedUrl;
+});
+
+resolver.define('get-upload-url', async ({payload, context}) => {
+  const client = new S3Client({
+    region: 'us-east-1', // asegúrate de que esta sea tu región
+    credentials: {
+      accessKeyId: 'AKIAXWNXRCON5E6GFRRX',
+      secretAccessKey: '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',
+    },
+  });
+
+  const command = new PutObjectCommand({
+    Bucket: 'issue-reminder-app-dev-issrem-529202746267',
+    Key: `uploads/${Date.now()}-${payload.fileName}`, // Usa un nombre único para cada archivo
+  });
+
+  // Generar URL firmada
+  const signedUrl = await getSignedUrl(client, command, {
+    expiresIn: 3600,
+  });
+
+  return signedUrl;
+});
 
 async function _getJobStatus(jobId: string): Promise<JobStatus> {
-    const request = await queue.getJob(jobId).getStats();
-    const statusList = await request.json();
+  const request = await queue.getJob(jobId).getStats();
+  const statusList = await request.json();
 
-    if (statusList.inProgress === 1) {
-        return JobStatus.inProgress;
-    } else if (statusList.success === 1) {
-        return JobStatus.success;
-    } else if (statusList.failed === 1) {
-        return JobStatus.failed;
-    }
+  if (statusList.inProgress === 1) {
+    return JobStatus.inProgress;
+  } else if (statusList.success === 1) {
+    return JobStatus.success;
+  } else if (statusList.failed === 1) {
+    return JobStatus.failed;
+  }
 
-    throw new Error("Estado del trabajo no reconocido");
+  throw new Error('Estado del trabajo no reconocido');
 }
+
+async function handleIssueOperationsFromCsv(s3Key: string, projectId: string) {
+  try {
+    // Asegurarnos que s3Key es una URL válida
+    const s3Url = `https://issue-reminder-app-dev-issrem-529202746267.s3.amazonaws.com/${s3Key}`;
+    const response = await fetch(s3Url);
+    const csvText = await response.text();
+
+    // Parsear el archivo CSV
+    const parsedData = Papa.parse(csvText, {
+      header: true, // Asume que la primera fila es el encabezado
+    }).data;
+
+    // Iterar sobre cada fila del CSV
+    const results = parsedData.map((row) => {
+      // Aquí puedes realizar las operaciones necesarias con cada fila
+      // Por ejemplo, crear un ticket o realizar alguna otra acción
+      return {
+        ticket: {
+          /* ... datos del ticket ... */
+        },
+        jobId: 'someJobId', // Genera o asigna un ID de trabajo
+      };
+    });
+
+    return results;
+  } catch (error) {
+    console.error('Error al procesar el archivo CSV desde S3:', error);
+    throw new Error('Error al procesar el archivo CSV');
+  }
+}
+
+export const handler: ReturnType<typeof resolver.getDefinitions> = resolver.getDefinitions();

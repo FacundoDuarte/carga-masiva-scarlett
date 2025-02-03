@@ -6,13 +6,14 @@
   "private": true,
   "scripts": {
     "build:frontend": "cd static/frontend && bun install && bun run build && cd ../..",
-    "clean:frontend": "cd static/frontend && rm -rf build node_modules package-lock.json && cd ../..",
+    "clean:frontend": "cd static/frontend && rm -rf build node_modules bun.lock && cd ../..",
     "build": "bun install",
-    "clean": "rm -rf build node_modules package-lock.json",
+    "clean": "rm -rf build node_modules bun.lock",
     "start": "NODE_NO_WARNINGS=1 ts-node src/index.ts"
   },
   "devDependencies": {
     "@forge/api": "^4.1.2",
+    "@types/bun": "^1.2.0",
     "@types/papaparse": "^5.3.15",
     "eslint": "^8.57.1",
     "eslint-plugin-react-hooks": "^4.6.2"
@@ -20,8 +21,12 @@
   "dependencies": {
     "@atlaskit/button": "^20.3.10",
     "@atlaskit/form": "^11.0.2",
+    "@aws-sdk/client-s3": "^3.735.0",
+    "@aws-sdk/s3-request-presigner": "^3.735.0",
     "@forge/events": "^0.9.6",
     "@forge/react": "^10.10.1",
-    "@forge/resolver": "^1.6.3"
+    "@forge/resolver": "^1.6.3",
+    "bun": "^1.2.1",
+    "papaparse": "^5.5.2"
   }
 }

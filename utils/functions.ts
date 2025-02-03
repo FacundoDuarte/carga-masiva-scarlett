@@ -4,6 +4,7 @@ import {AtlassianDocument, TextNode} from './types/atlassian-document';
 import {CF} from './custom_fields';
 
 const ISSUE_TYPE = 11871;
+const QUERY_MAX_RESULTS: number = 5000;
 
 const validateIssueKey = (method: string, issueKey?: string) => {
   if (method.toLowerCase() === 'PUT' && !issueKey) {
@@ -45,7 +46,7 @@ export const requestTicketsJira = async (payload: Partial<Invoice>) => {
       issuetype: {id: ISSUE_TYPE},
     },
   };
-  
+
   const response = await api.asApp().requestJira(jiraRoute, {
     method,
     headers: {
@@ -73,14 +74,16 @@ export const requestTicketsJira = async (payload: Partial<Invoice>) => {
 export async function getExistingIssues(query: string, fields: string): Promise<Issue[]> {
   const response = await api
     .asApp()
-    .requestJira(route`/rest/api/3/search/jql?jql=${query}&fields=${fields}`, {
-      method: 'GET',
-    });
+    .requestJira(
+      route`/rest/api/3/search/jql?jql=${query}&fields=${fields}&maxResults=${QUERY_MAX_RESULTS}`,
+      {
+        method: 'GET',
+      },
+    );
   const data = (await response.json()) as QueryPayload;
-  
+
   return data.issues;
 }
-
 
 const _description = (description: string | TextNode | undefined): AtlassianDocument => {
   const _isAdf = (body: any): body is TextNode =>
