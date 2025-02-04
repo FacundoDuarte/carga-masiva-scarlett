@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import Form, {Field, ErrorMessage} from '@atlaskit/form';
 import TextField from '@atlaskit/textfield';
+import {ButtonGroup} from '@atlaskit/button';
 import Button from '@atlaskit/button/new';
 import Papa from 'papaparse';
 import {invoke, view, router} from '@forge/bridge';
@@ -126,7 +127,6 @@ export default function App() {
   // Control de verificación periódica
   const [shouldCheck, setShouldCheck] = useState(false);
   const [intervalId, setIntervalId] = useState<NodeJS.Timer | null>(null);
-  const [isLoadingButton, setIsLoadingButton] = useState(false);
     const [isProcessing, setIsProcessing] = useState<Status>(Status.init);
 
   // Paginación
@@ -191,7 +191,7 @@ export default function App() {
               }
             } catch (err) {
               console.error(`[Storage] Error al obtener issueKey:`, err);
-            }
+            } 
           }
           return job;
         }),
@@ -232,8 +232,7 @@ export default function App() {
       alert('Primero selecciona un archivo CSV');
       return;
     }
-        setIsProcessing(Status.inprogress);
-    setIsLoadingButton(true);
+    setIsProcessing(Status.inprogress);
     setSuccessMessage(null);
     setErrorMessage(null);
 
@@ -264,7 +263,7 @@ export default function App() {
       console.error('Error al crear tickets:', err);
       setErrorMessage(`Error al crear tickets: ${err}`);
     } finally {
-      setIsLoading(false);
+      setIsProcessing(Status.done)
     }
   };
 
@@ -335,8 +334,6 @@ export default function App() {
                 clearInterval(newIntervalId);
                 setIntervalId(null);
                 setShouldCheck(false);
-            } finally {
-                setIsLoadingButton(false);
             }
         }, 4000);
         setIntervalId(newIntervalId);
@@ -436,36 +433,35 @@ export default function App() {
               <Field name="csv-file" label="Selecciona tu archivo CSV" isRequired>
                 {({fieldProps, error}) => (
                   <>
-                    <TextField {...fieldProps} type="file" onChange={handleFileChange} />
+                  <TextField {...fieldProps} type="file" onChange={handleFileChange} />
                     {error && <ErrorMessage>{error}</ErrorMessage>}
                   </>
                 )}
               </Field>
             </div>
             <div style={{marginTop: 'var(--ds-space-200)'}}>
-              <Button
-                type="submit"
-                appearance="primary"
-                isLoading={isLoading}
-                isDisabled={isLoading}>
-                Ejecutar cambios
-              </Button>
+              { isProcessing == Status.init &&(
+                <ButtonGroup>
+                <Button onClick={_downloadTemplate}>Descargar template</Button>
+                <Button type="submit" appearance="primary">Ejecutar cambios</Button>
+                </ButtonGroup>
+               )}
             </div>
           </form>
         )}
       </Form>
-      <Button onClick={_downloadTemplate}>Descargar template</Button>
-      {jobs.length > 0 && (
-        <DynamicTable
+      
+      {isProcessing != Status.init && (
+        <DynamicTableStateless
           head={tableHead}
           rows={rows}
           rowsPerPage={ROWS_PER_PAGE}
           page={currentPage}
-          //   isLoading={isLoading}
-          defaultPage={currentPage}
+          isLoading={isProcessing == Status.inprogress}
           onSetPage={(newPage) => {
             setCurrentPage(newPage);
             setShouldCheck(true);
+            setIsProcessing(Status.inprogress);
           }}
         />
       )}
