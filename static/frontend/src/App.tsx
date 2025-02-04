@@ -9,7 +9,7 @@ import {Appearance, Invoice, Issue, Job, JobStatus} from './types';
 import {Anchor, Box, xcss} from '@atlaskit/primitives';
 import Issue16Icon from '@atlaskit/icon-object/glyph/issue/16';
 
-import DynamicTable from '@atlaskit/dynamic-table';
+import { DynamicTableStateless } from '@atlaskit/dynamic-table';
 import SectionMessage from '@atlaskit/section-message';
 import Lozenge from '@atlaskit/lozenge';
 import {ThemeAppearance} from '@atlaskit/lozenge/dist/types';
@@ -110,7 +110,11 @@ function IssueCard({
     </Anchor>
   );
 }
-
+const enum Status {
+  init,
+  inprogress,
+  done
+}
 export default function App() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [context, setContext] = useState<FullContext | undefined>();
@@ -122,7 +126,8 @@ export default function App() {
   // Control de verificación periódica
   const [shouldCheck, setShouldCheck] = useState(false);
   const [intervalId, setIntervalId] = useState<NodeJS.Timer | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingButton, setIsLoadingButton] = useState(false);
+    const [isProcessing, setIsProcessing] = useState<Status>(Status.init);
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -227,7 +232,8 @@ export default function App() {
       alert('Primero selecciona un archivo CSV');
       return;
     }
-    setIsLoading(true);
+        setIsProcessing(Status.inprogress);
+    setIsLoadingButton(true);
     setSuccessMessage(null);
     setErrorMessage(null);
 
@@ -312,27 +318,29 @@ export default function App() {
               updatedJiraStatus = match?.fields.status; // ...
             }
 
-            return {
-              ...job,
-              status: updatedCola ? updatedCola.status : job.status,
-              ticket: {
-                ...job.ticket,
-                status: updatedJiraStatus,
-              },
-            };
-          }),
-        );
-      } catch (err) {
-        console.error('Error al verificar estado de los jobs:', err);
-        clearInterval(newIntervalId);
-        setIntervalId(null);
-        setShouldCheck(false);
-      } finally {
-        setIsLoading(false);
-      }
-    }, 60000);
-    setIntervalId(newIntervalId);
-  };
+                        return {
+                            ...job,
+                            status: updatedCola
+                                ? updatedCola.status
+                                : job.status,
+                            ticket: {
+                                ...job.ticket,
+                                status: updatedJiraStatus,
+                            },
+                        };
+                    })
+                );
+            } catch (err) {
+                console.error("Error al verificar estado de los jobs:", err);
+                clearInterval(newIntervalId);
+                setIntervalId(null);
+                setShouldCheck(false);
+            } finally {
+                setIsLoadingButton(false);
+            }
+        }, 4000);
+        setIntervalId(newIntervalId);
+    };
 
   // ----------------------
   // Definición de columnas de DynamicTable
