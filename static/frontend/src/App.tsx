@@ -244,6 +244,7 @@ export default function App() {
       await fetch(uploadUrl, {
         method: 'PUT',
         body: csvFile,
+        headers: {'Access-Control-Allow-Origin': '*'},
       });
 
       // Llamar al backend para procesar el archivo desde S3

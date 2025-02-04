@@ -19,7 +19,6 @@ modules:
 resources:
   - key: main
     path: static/frontend/build
-#Falta agregar el Egresss a https://issue-reminder-app-dev-issrem-529202746267.s3.us-east-1.amazonaws.com/uploads/1738163591483-scarlett-sample-export.csv?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAXWNXRCON5E6GFRRX%2F20250129%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250129T151311Z&X-Amz-Expires=3600&X-Amz-Signature=27a1d024267e47c434418e1161e1f28c7305048baa7958088edba2b7bb75d3d4&X-Amz-SignedHeaders=host&x-amz-checksum-crc32=AAAAAA%3D%3D&x-amz-sdk-checksum-algorithm=CRC32&x-id=PutObject
 permissions:
   scopes:
     - read:jira-work
@@ -28,6 +27,18 @@ permissions:
   content:
     styles:
       - "unsafe-inline"
+  external:
+    fetch:
+      client:
+        - remote: iss-rem-bucket
+        - issue-reminder-app-dev-issrem-529202746267.s3.us-east-1.amazonaws.com
+        - issue-reminder-app-dev-issrem-529202746267.s3.amazonaws.com
+remotes:
+  - key: iss-rem-bucket
+    baseUrl: https://issue-reminder-app-dev-issrem-529202746267.s3.us-east-1.amazonaws.com
+    operations:
+      - compute
+      - fetch
 app:
   runtime:
     name: nodejs20.x
