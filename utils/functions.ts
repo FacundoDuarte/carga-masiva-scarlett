@@ -1,6 +1,5 @@
 import api, {route} from '@forge/api';
 import {Invoice, Issue, QueryPayload} from './types';
-import {AtlassianDocument, TextNode} from './types/atlassian-document';
 
 const QUERY_MAX_RESULTS: number = 5000;
 

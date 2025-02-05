@@ -39,7 +39,7 @@ const client = new S3Client({
 resolver.define(
   'issue-operations-from-csv',
   async ({payload, context}: {payload: IssueOperationsFromCsvPayload; context: any}) => {
-    return await execute(context.jobId, async () => {
+    return await execute(async () => {
       const {s3Key, projectId} = payload;
       return await _handleIssueOperationsFromCsv(s3Key, projectId);
     });
@@ -104,13 +104,14 @@ async function _handleIssueOperationsFromCsv(
       // Mantener las propiedades calculadas
 
       console.log('Ticket después de calcular método y clave:', ticket);
-      queue.push({
+      const jobId = await queue.push({
         ...ticket,
         method: _issueExist ? 'PUT' : 'POST',
       } as OperationPayload);
       console.log('Ticket en la cola:', JSON.stringify(ticket));
       results.push({
         ticket: ticket as Invoice,
+        jobId: jobId,
         id: row[CsvRowHeaders.uuid] as string,
       });
     }
@@ -122,21 +123,19 @@ async function _handleIssueOperationsFromCsv(
   }
 }
 
-resolver.define(
-  'get-jobs-status',
-  async ({payload, context}: {payload: GetJobsStatusPayload; context: any}) => {
-    const jobId = context?.jobId;
-    return await execute(jobId, async () => {
-      return await _getJobsStatus(payload);
+resolver.define('get-jobs-status', async ({payload, context}: {payload: GetJobsStatusPayload; context: any}) => {
+    console.log("payload status: ", payload);
+    return await execute(async () => {
+      return await _getJobsStatus(payload.jobsList);
     });
   },
 );
 
-async function _getJobsStatus(payload: {jobsList: string[]}) {
-  const {jobsList} = payload;
+async function _getJobsStatus(jobsList: string[]) {
   const updatedJobs: Job[] = [];
 
   for (const jobId of jobsList) {
+    console.log("consultando jobId: ", jobId);
     const jobStatus = await _getJobStats(jobId);
     updatedJobs.push({
       id: jobId,
@@ -149,7 +148,7 @@ async function _getJobsStatus(payload: {jobsList: string[]}) {
 resolver.define(
   'get-issue-key',
   async ({payload, context}: {payload: GetIssueKeyPayload; context: any}) => {
-    return await execute(context.jobId, async () => {
+    return await execute(async () => {
       return await _getIssueKey(payload);
     });
   },
@@ -160,7 +159,7 @@ const _getIssueKey = async (payload: RequestPayload) => await storage.get(`scarl
 resolver.define(
   'get-issue-status',
   async ({payload, context}: {payload: GetIssueStatusPayload; context: any}) => {
-    return await execute(context.jobId, async () => {
+    return await execute(async () => {
       return await _getIssueStatus(payload);
     });
   },
@@ -182,7 +181,7 @@ async function _getIssueStatus(payload: GetIssueStatusPayload) {
 resolver.define(
   'download-template',
   async ({payload, context}: {payload: RequestPayload; context: any}) => {
-    return await execute(context.jobId, async () => {
+    return await execute(async () => {
       return await _downloadTemplate();
     });
   },
@@ -202,7 +201,7 @@ async function _downloadTemplate() {
 resolver.define(
   'get-upload-url',
   async ({payload, context}: {payload: GetUploadUrlPayload; context: any}) => {
-    return await execute(context.jobId, async () => {
+    return await execute(async () => {
       return await _getUploadUrl(payload);
     });
   },
@@ -237,22 +236,12 @@ async function _getJobStats(jobId: string): Promise<JobStatus> {
 }
 
 // Modificar la función execute para manejar mejor los casos donde jobId podría ser undefined
-async function execute<T>(jobId: string | undefined, operation: () => Promise<T>): Promise<T> {
-  console.log('Ejecutando operación con jobId:', jobId);
+async function execute<T>(operation: () => Promise<T>): Promise<T> {
+  console.log('Operation name:', operation.name);
   try {
     return await operation();
   } catch (error) {
     console.error('Error en la operación:', error);
-    if (jobId) {
-      try {
-        const job = queue.getJob(jobId);
-        console.log('Job obtenido:', job);
-        await job?.cancel();
-      } catch (cancelError) {
-        console.error('Error al cancelar el trabajo:', cancelError);
-      }
-    }
-    // throw error;
   }
 }
 

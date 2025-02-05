@@ -32,6 +32,7 @@ export const enum JobStatus {
 
 export type Job = {
   id: string;
+  ticket?: Partial<Issue> | undefined;
   status: JobStatus;
 };
 

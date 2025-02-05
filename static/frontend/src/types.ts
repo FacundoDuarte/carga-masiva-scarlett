@@ -14,7 +14,7 @@ export const enum Appearance {
 
 export interface Job {
   id: string;
-  ticket: Partial<Invoice> | undefined;
+  ticket: Partial<Issue> | undefined;
   status: JobStatus;
 }
 
@@ -50,9 +50,10 @@ export type Issue = {
     project: {id: number};
     summary: string | undefined;
     issuetype: {id: number};
-    status?: {statusCategory: {key: string; name: string}};
+    status?: {name: string; statusCategory: {key: string; name: string}};
   } & CustomField;
 };
+
 type CustomField = {
   [key: `customfield_${number}`]:
     | string

@@ -13,6 +13,8 @@ import {DynamicTableStateless} from '@atlaskit/dynamic-table';
 import SectionMessage from '@atlaskit/section-message';
 import Lozenge from '@atlaskit/lozenge';
 import {ThemeAppearance} from '@atlaskit/lozenge/dist/types';
+import { CF } from './types/custom_fields';
+import { RowType } from '@atlaskit/dynamic-table/dist/types/types';
 
 const enum Status {
   init,
@@ -184,9 +186,7 @@ export default function App() {
       const updated = await Promise.all(
         currentJobs.map(async (job) => {
           if (
-            job.status === JobStatus.success &&
-            !job.ticket?.key && // no tiene key
-            job.ticket?.method === 'POST'
+            job.status === JobStatus.success && !job.ticket?.key
           ) {
             try {
               console.log(`[Storage] Buscando issueKey para job ${job.id}`);
@@ -317,7 +317,8 @@ export default function App() {
           setShouldCheck(false);
           return;
         }
-
+        console.log(pendingJobs);
+        
         // 2) Mapeamos solo esos pendingJobs a jobIds
         const jobIds = pendingJobs.map((job) => job.id);
 
@@ -328,9 +329,7 @@ export default function App() {
         const issueKeys = pendingJobs.map((job) => job.ticket.key).filter(Boolean) as string[];
 
         // Llamamos a get-issue-status
-        if (issueKeys) {
-          const issuesFromJira = issueKeys ? await _getIssueStatus(issueKeys) : [];
-        }
+        const issuesFromJira = issueKeys.length > 0 ? await _getIssueStatus(issueKeys) : [];
 
         // Combinar ambos
         setJobs((prev) =>
@@ -345,9 +344,9 @@ export default function App() {
 
             // b) estado real en Jira
             let updatedJiraStatus;
-            if (job.ticket?.key) {
+            if (issuesFromJira.length > 0 && job.ticket?.key) {
               const match = issuesFromJira?.find((iss) => iss.key === job.ticket.key);
-              updatedJiraStatus = match?.fields.status; // ...
+              updatedJiraStatus = match?.fields.status; 
             }
 
             return {
@@ -365,6 +364,8 @@ export default function App() {
         clearInterval(newIntervalId);
         setIntervalId(null);
         setShouldCheck(false);
+      } finally {
+        setIsProcessing(Status.done);
       }
     }, 4000);
     setIntervalId(newIntervalId);
@@ -378,7 +379,6 @@ export default function App() {
     cells: [
       {key: 'summary', content: 'Resumen'},
       {key: 'uuid', content: 'Scarlett ID'},
-      {key: 'method', content: 'Accion'},
       {key: 'queueStatus', content: 'Estado sync (cola)'},
       {key: 'issueKey', content: 'Issue Key'},
     ],
@@ -394,15 +394,11 @@ export default function App() {
       cells: [
         {
           key: 'summary',
-          content: job.ticket?.summary || '...',
+          content: job.ticket?.fields.summary || '...',
         },
         {
           key: 'scarlett_id',
-          content: job.ticket?.scarlettId || '...',
-        },
-        {
-          key: 'method',
-          content: job.ticket?.method === 'POST' ? 'Creacion' : 'Edicion',
+          content: job.ticket?.fields[CF.scarlett_id] || '...',
         },
         {
           key: 'queueStatus',
@@ -413,9 +409,9 @@ export default function App() {
           content: job.ticket?.key ? (
             <IssueCard
               issueKey={job.ticket.key}
-              summary={job.ticket.summary || ''}
-              statusKey={job.ticket.status?.statusCategory.key || 'new'}
-              statusName={job.ticket.status?.name || '...'}
+              summary={job.ticket.fields.summary || ''}
+              statusKey={job.ticket.fields.status?.statusCategory.key || 'new'}
+              statusName={job.ticket.fields.status?.name || '...'}
             />
           ) : (
             '...'
@@ -484,7 +480,7 @@ export default function App() {
       {isProcessing != Status.init && (
         <DynamicTableStateless
           head={tableHead}
-          rows={rows}
+          rows={rows as RowType[]}
           rowsPerPage={ROWS_PER_PAGE}
           page={currentPage}
           isLoading={isProcessing == Status.inprogress}
