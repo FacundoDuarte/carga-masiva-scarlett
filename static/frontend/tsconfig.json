@@ -13,7 +13,7 @@
     "baseUrl": ".",
     "paths": {
       // "@types/*": ["src/types/*"],
-      // "@utils/*": ["utils/*"],
+      "@utils/*": ["utils/*"],
       "@src/*": ["src/*"],
       "@components/*": ["src/components/*"]
     },

@@ -20,6 +20,6 @@
     "jsx": "react"
   },
   // "include": ["src/**/*", "utils/**/*", "static/frontend/src/**/*"],
-  "include": ["src/**/*", "utils/**/*"],
+  "include": ["src/**/*", "utils/**/*", "utils/types/custom_fields.ts"],
   "exclude": ["node_modules", "static/**/build", "dist"]
 }

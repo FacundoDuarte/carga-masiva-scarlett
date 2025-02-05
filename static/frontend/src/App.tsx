@@ -3,28 +3,22 @@ import Form, {Field, ErrorMessage} from '@atlaskit/form';
 import TextField from '@atlaskit/textfield';
 import {ButtonGroup} from '@atlaskit/button';
 import Button from '@atlaskit/button/new';
-import Papa from 'papaparse';
 import {invoke, view, router} from '@forge/bridge';
 import {FullContext} from '@forge/bridge/out/types';
 import {Appearance, Invoice, Issue, Job, JobStatus} from './types';
 import {Anchor, Box, xcss} from '@atlaskit/primitives';
 import Issue16Icon from '@atlaskit/icon-object/glyph/issue/16';
 
-import { DynamicTableStateless } from '@atlaskit/dynamic-table';
+import {DynamicTableStateless} from '@atlaskit/dynamic-table';
 import SectionMessage from '@atlaskit/section-message';
 import Lozenge from '@atlaskit/lozenge';
 import {ThemeAppearance} from '@atlaskit/lozenge/dist/types';
 
-// ----------------------------------
-// Mapear la key del status de Jira (statusCategory.key) a un color del Lozenge
-function mapJiraStatusToAppearance(statusKey: string): string {
-  const statusMap: Record<string, Appearance> = {
-    new: Appearance.default,
-    indeterminate: Appearance.inProgress,
-    done: Appearance.success,
-  };
-  // En caso de no coincidir con los que definiste, usamos "default"
-  return statusMap[statusKey] || Appearance.default;
+const enum Status {
+  init,
+  loaded,
+  inprogress,
+  done,
 }
 
 // ----------------------------------
@@ -47,7 +41,7 @@ function getAppearanceAndText(status: JobStatus): {
 
 // ----------------------------------
 // El componente que mostrará un enlace al Issue y el Lozenge con estado real de Jira
-function IssueCard({
+const IssueCard = ({
   issueKey,
   summary,
   statusKey,
@@ -57,11 +51,22 @@ function IssueCard({
   summary: string;
   statusKey: string;
   statusName: string;
-}) {
+}) => {
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     router.open(`/browse/${issueKey}`);
   };
+  // ----------------------------------
+  // Mapear la key del status de Jira (statusCategory.key) a un color del Lozenge
+  function mapJiraStatusToAppearance(statusKey: string): string {
+    const statusMap: Record<string, Appearance> = {
+      new: Appearance.default,
+      indeterminate: Appearance.inProgress,
+      done: Appearance.success,
+    };
+    // En caso de no coincidir con los que definiste, usamos "default"
+    return statusMap[statusKey] || Appearance.default;
+  }
 
   // Mapeo de key a color del Lozenge
   const jiraAppearance = mapJiraStatusToAppearance(statusKey);
@@ -110,16 +115,12 @@ function IssueCard({
       {/* <Lozenge appearance='default'>{statusName}</Lozenge> */}
     </Anchor>
   );
-}
-const enum Status {
-  init,
-  inprogress,
-  done
-}
+};
+
 export default function App() {
-  const [csvFile, setCsvFile] = useState<File | null>(null);
+  // const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [objectKey, setObjectKey] = useState<string | undefined>();
   const [context, setContext] = useState<FullContext | undefined>();
-  const [csvDataCount, setCsvDataCount] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -127,7 +128,7 @@ export default function App() {
   // Control de verificación periódica
   const [shouldCheck, setShouldCheck] = useState(false);
   const [intervalId, setIntervalId] = useState<NodeJS.Timer | null>(null);
-    const [isProcessing, setIsProcessing] = useState<Status>(Status.init);
+  const [isProcessing, setIsProcessing] = useState<Status>(Status.init);
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -172,8 +173,16 @@ export default function App() {
   useEffect(() => {
     const updateJobsWithIssueKeys = async () => {
       let needsUpdate = false;
+
+      // Calcular el índice de inicio y fin para la página actual
+      const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
+      const endIndex = startIndex + ROWS_PER_PAGE;
+
+      // Filtrar solo los trabajos de la página actual
+      const currentJobs = jobs.slice(startIndex, endIndex);
+
       const updated = await Promise.all(
-        jobs.map(async (job) => {
+        currentJobs.map(async (job) => {
           if (
             job.status === JobStatus.success &&
             !job.ticket?.key && // no tiene key
@@ -191,17 +200,25 @@ export default function App() {
               }
             } catch (err) {
               console.error(`[Storage] Error al obtener issueKey:`, err);
-            } 
+            }
           }
           return job;
         }),
       );
+
       if (needsUpdate) {
-        setJobs(updated);
+        // Actualizar solo los trabajos de la página actual
+        setJobs((prevJobs) => {
+          const newJobs = [...prevJobs];
+          for (let i = startIndex; i < endIndex; i++) {
+            newJobs[i] = updated[i - startIndex];
+          }
+          return newJobs;
+        });
       }
     };
     updateJobsWithIssueKeys();
-  }, [jobs]);
+  }, [jobs, currentPage]); // Añadir currentPage como dependencia
 
   // ----------------------
   // Revisamos si existe projectId
@@ -214,21 +231,44 @@ export default function App() {
   // ----------------------
   // Manejador de archivos CSV
   // ----------------------
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
-    setCsvFile(file);
 
-    // Limpiar estado anterior
-    setJobs([]);
-    setSuccessMessage('');
-    setErrorMessage('');
+    try {
+      // Obtener la URL pre-firmada para subir el archivo
+      const {signedUrl: uploadUrl, s3Key} = await invoke<{signedUrl: string; s3Key: string}>(
+        'get-upload-url',
+        {
+          fileName: file.name,
+        },
+      );
+      setObjectKey(s3Key);
+      setIsProcessing(Status.loaded);
+      console.log(`uploadUrl: ${uploadUrl}`);
+
+      // Subir el archivo a S3 usando la URL pre-firmada
+      const res = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {'Access-Control-Allow-Origin': '*', 'Content-Type': 'text/csv'},
+      });
+      console.log(await res.text());
+      setErrorMessage('');
+    } catch (err) {
+      console.error(err);
+      setErrorMessage(err);
+      setSuccessMessage('');
+    } finally {
+      // Limpiar estado anterior
+      setJobs([]);
+    }
   };
 
   // ----------------------
   // Enviar CSV
   // ----------------------
   const handleSubmit = async () => {
-    if (!csvFile) {
+    if (!objectKey) {
       alert('Primero selecciona un archivo CSV');
       return;
     }
@@ -237,18 +277,8 @@ export default function App() {
     setErrorMessage(null);
 
     try {
-      // Obtener la URL pre-firmada para subir el archivo
-      const uploadUrl = (await invoke('get-upload-url', {fileName: csvFile.name})) as string;
-
-      // Subir el archivo a S3 usando la URL pre-firmada
-      await fetch(uploadUrl, {
-        method: 'PUT',
-        body: csvFile,
-        headers: {'Access-Control-Allow-Origin': '*'},
-      });
-
       // Llamar al backend para procesar el archivo desde S3
-      const jobList = await _executeCsvOperations(csvFile.name, projectId);
+      const jobList = await _invokeCsvOperations(objectKey, projectId);
 
       // Generar estado local
       setJobs(
@@ -264,7 +294,7 @@ export default function App() {
       console.error('Error al crear tickets:', err);
       setErrorMessage(`Error al crear tickets: ${err}`);
     } finally {
-      setIsProcessing(Status.done)
+      setIsProcessing(Status.done);
     }
   };
 
@@ -298,7 +328,9 @@ export default function App() {
         const issueKeys = pendingJobs.map((job) => job.ticket.key).filter(Boolean) as string[];
 
         // Llamamos a get-issue-status
-        const issuesFromJira = await _getIssueStatus(issueKeys);
+        if (issueKeys) {
+          const issuesFromJira = issueKeys ? await _getIssueStatus(issueKeys) : [];
+        }
 
         // Combinar ambos
         setJobs((prev) =>
@@ -314,31 +346,29 @@ export default function App() {
             // b) estado real en Jira
             let updatedJiraStatus;
             if (job.ticket?.key) {
-              const match = issuesFromJira.find((iss) => iss.key === job.ticket.key);
+              const match = issuesFromJira?.find((iss) => iss.key === job.ticket.key);
               updatedJiraStatus = match?.fields.status; // ...
             }
 
-                        return {
-                            ...job,
-                            status: updatedCola
-                                ? updatedCola.status
-                                : job.status,
-                            ticket: {
-                                ...job.ticket,
-                                status: updatedJiraStatus,
-                            },
-                        };
-                    })
-                );
-            } catch (err) {
-                console.error("Error al verificar estado de los jobs:", err);
-                clearInterval(newIntervalId);
-                setIntervalId(null);
-                setShouldCheck(false);
-            }
-        }, 4000);
-        setIntervalId(newIntervalId);
-    };
+            return {
+              ...job,
+              status: updatedCola ? updatedCola.status : job.status,
+              ticket: {
+                ...job.ticket,
+                status: updatedJiraStatus,
+              },
+            };
+          }),
+        );
+      } catch (err) {
+        console.error('Error al verificar estado de los jobs:', err);
+        clearInterval(newIntervalId);
+        setIntervalId(null);
+        setShouldCheck(false);
+      }
+    }, 4000);
+    setIntervalId(newIntervalId);
+  };
 
   // ----------------------
   // Definición de columnas de DynamicTable
@@ -347,7 +377,7 @@ export default function App() {
   const tableHead = {
     cells: [
       {key: 'summary', content: 'Resumen'},
-      {key: 'scarlett_id', content: 'Scarlett ID'},
+      {key: 'uuid', content: 'Scarlett ID'},
       {key: 'method', content: 'Accion'},
       {key: 'queueStatus', content: 'Estado sync (cola)'},
       {key: 'issueKey', content: 'Issue Key'},
@@ -409,12 +439,6 @@ export default function App() {
     <div style={{margin: '16px auto', fontFamily: 'sans-serif'}}>
       <h1 style={{color: '#fff'}}>Sube el archivo</h1>
 
-      {!successMessage && !errorMessage && csvDataCount !== null && (
-        <SectionMessage appearance="information">
-          Número de elementos en el archivo: {csvDataCount}
-        </SectionMessage>
-      )}
-
       {successMessage && (
         <div style={{marginBottom: '1rem'}}>
           <SectionMessage appearance="success">{successMessage}</SectionMessage>
@@ -434,24 +458,29 @@ export default function App() {
               <Field name="csv-file" label="Selecciona tu archivo CSV" isRequired>
                 {({fieldProps, error}) => (
                   <>
-                  <TextField {...fieldProps} type="file" onChange={handleFileChange} />
+                    <TextField {...fieldProps} type="file" onChange={handleFileChange} />
                     {error && <ErrorMessage>{error}</ErrorMessage>}
                   </>
                 )}
               </Field>
             </div>
             <div style={{marginTop: 'var(--ds-space-200)'}}>
-              { isProcessing == Status.init &&(
+              {(isProcessing == Status.init || isProcessing == Status.loaded) && (
                 <ButtonGroup>
-                <Button onClick={_downloadTemplate}>Descargar template</Button>
-                <Button type="submit" appearance="primary">Ejecutar cambios</Button>
+                  <Button onClick={_downloadTemplate}>Descargar template</Button>
+                  <Button
+                    type="submit"
+                    appearance="primary"
+                    isDisabled={isProcessing != Status.loaded}>
+                    Ejecutar cambios
+                  </Button>
                 </ButtonGroup>
-               )}
+              )}
             </div>
           </form>
         )}
       </Form>
-      
+
       {isProcessing != Status.init && (
         <DynamicTableStateless
           head={tableHead}
@@ -473,15 +502,15 @@ export default function App() {
 // -------------------------------------------------------------------------------------
 // Funciones auxiliares
 // -------------------------------------------------------------------------------------
-async function initOperationFromCsv(
-  parsedData: unknown[],
-  projectId: string | number,
-): Promise<{ticket: Partial<Invoice>; jobId: string}[]> {
-  return (await invoke('issue-operations-from-csv', {
-    csvData: parsedData,
-    projectId,
-  })) as {ticket: Partial<Invoice>; jobId: string}[];
-}
+// async function initOperationFromCsv(
+//   parsedData: unknown[],
+//   projectId: string | number,
+// ): Promise<{ticket: Partial<Invoice>; jobId: string}[]> {
+//   return (await invoke('issue-operations-from-csv', {
+//     csvData: parsedData,
+//     projectId,
+//   })) as {ticket: Partial<Invoice>; jobId: string}[];
+// }
 
 async function getJobsStatus(jobIds: string[]): Promise<Job[]> {
   return (await invoke('get-jobs-status', {jobsList: jobIds})) as Job[];
@@ -494,22 +523,12 @@ async function _getIssueStatus(issueKeys: string[]): Promise<Issue[]> {
 async function _getIssueKeyFromJob(jobId: string): Promise<string> {
   return (await invoke('get-issue-key', {id: jobId})) as string;
 }
-async function _executeCsvOperations(
+async function _invokeCsvOperations(
   name,
   projectId,
 ): Promise<{ticket: Partial<Invoice>; jobId: string}[]> {
   return await invoke('issue-operations-from-csv', {
-    s3Key: `uploads/${Date.now()}-${name}`,
+    s3Key: name,
     projectId,
   });
 }
-
-type IssueOperationsRequest = {
-  payload: {
-    s3Key: string;
-    projectId: string;
-  };
-  context: {
-    jobId: string;
-  };
-};

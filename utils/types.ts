@@ -1,5 +1,5 @@
 export type Invoice = {
-  projectId: number;
+  project: {id: number};
   summary: string;
   pais: string;
   uuid: string;
@@ -45,7 +45,7 @@ export type Issue = {
     project: {id: number};
     summary: string | undefined;
     issuetype: {id: number};
-    status?: {name: string, statusCategory: {key: string, name: string}}
+    status?: {name: string; statusCategory: {key: string; name: string}};
   } & CustomField;
 };
 
@@ -59,3 +59,34 @@ type CustomField = {
     | undefined
     | [];
 };
+
+export interface RequestPayload {
+  [x: string]: any;
+  [x: number]: any;
+}
+
+export interface IssueOperationsFromCsvPayload extends RequestPayload {
+  s3Key: string;
+  projectId: number;
+}
+
+export interface GetJobsStatusPayload extends RequestPayload {
+  jobsList: string[];
+}
+
+export interface GetIssueKeyPayload extends RequestPayload {
+  id: string;
+}
+
+export interface GetIssueStatusPayload extends RequestPayload {
+  issueKeys: string[];
+}
+
+export interface GetUploadUrlPayload extends RequestPayload {
+  fileName: string;
+}
+
+export type OperationPayload = {
+  method: 'PUT' | 'POST';
+  key: string | undefined;
+} & Partial<Invoice>;
