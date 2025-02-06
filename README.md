@@ -49,3 +49,13 @@ forge install
 
 See [Get help](https://developer.atlassian.com/platform/forge/get-help/) for how to get help and provide feedback.
 
+## Pendientes
+- Que se deje de llamar en bucle la consulta de los jobs ✅
+- Consultar correctamente el estado de los jobs según la paginación✅
+- Cuando cambia de página, que desaparezca el spinner de carga✅
+- Sacar todos los console.log
+- Ver como cargar correctamente el proveedor (es un campo de assets) -> Usar el proveedor id y mediante automation rule, asignar el proveedor en el campo de assets -> hablar con Joaco. 
+- Tener en cuenta que cuando un ticket tiene cierta resolución, no se debe modificar.
+- Eliminar los archivos temporales en aws 
+- Habilitar el botón de ejecutar cambios cuando se suba el archivo
+- Preparar la depuracion de los logs actuales y poner logs de como se van actualizando los jobs, para obtener información de como se van completando.
