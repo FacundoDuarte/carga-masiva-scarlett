@@ -50,7 +50,7 @@ export type Issue = {
     project: {id: number};
     summary: string | undefined;
     issuetype: {id: number};
-    status?: {name: string; statusCategory: {key: string; name: string}};
+    status?: {name: string, statusCategory: {key: string; name: string}};
   } & CustomField;
 };
 

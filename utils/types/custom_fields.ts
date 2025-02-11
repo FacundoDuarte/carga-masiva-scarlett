@@ -106,4 +106,3 @@ function parseAndFormatDate(
 
 // Ejemplo de uso:
 const fechaFormateada = parseAndFormatDate('22-01-2025');
-console.log(fechaFormateada); // Imprime: '2025-01-22'
