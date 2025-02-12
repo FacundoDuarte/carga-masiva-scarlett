@@ -4,19 +4,25 @@
   "main": "index.js",
   "license": "MIT",
   "private": true,
+  "packageManager": "bun@1.2.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "build:frontend": "cd static/frontend && bun install && bun run build && cd ../..",
-    "clean:frontend": "cd static/frontend && rm -rf build node_modules bun.lock && cd ../..",
-    "build": "bun install",
+    "build": "turbo run build",
     "clean": "rm -rf build node_modules bun.lock",
-    "start": "NODE_NO_WARNINGS=1 ts-node src/index.ts"
+    "start": "NODE_NO_WARNINGS=1 ts-node src/index.ts",
+    "deploy:sam": "cd apps/remote-app && chmod +x scripts/deploy.sh && ./scripts/deploy.sh",
+    "build:all": "turbo run build && bun run deploy:sam"
   },
   "devDependencies": {
     "@forge/api": "^4.1.2",
     "@types/bun": "^1.2.0",
     "@types/papaparse": "^5.3.15",
     "eslint": "^8.57.1",
-    "eslint-plugin-react-hooks": "^4.6.2"
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "turbo": "^2.4.1"
   },
   "dependencies": {
     "@atlaskit/button": "^20.3.10",
@@ -27,6 +33,7 @@
     "@forge/react": "^10.10.1",
     "@forge/resolver": "^1.6.3",
     "bun": "^1.2.1",
-    "papaparse": "^5.5.2"
+    "papaparse": "^5.5.2",
+    "vite": "^6.1.0"
   }
 }

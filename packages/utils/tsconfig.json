@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "module": "ES6",
+    "moduleResolution": "bundler",
+    "target": "ES6",
+    "rootDir": ".",
+    "outDir": "dist",
+    "composite": true,
+  },
+  "include": ["./**/*.ts", "./**/*.tsx"]
+} 

@@ -1,0 +1,40 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "globalEnv": [
+        "AWS_PROFILE",
+        "AWS_REGION"
+    ],
+    "tasks": {
+        "build": {
+            "dependsOn": [
+                "^build"
+            ],
+            "outputs": [
+                "dist/**",
+                ".next/**",
+                "build/**"
+            ],
+            "inputs": [
+                "src/**/*.tsx",
+                "src/**/*.ts",
+                "template.yml"
+            ]
+        },
+        "deploy:sam": {
+            "cache": false,
+            "inputs": [
+                "template.yml",
+                "sam-config-dev.toml"
+            ],
+            "outputs": [
+                ".env"
+            ]
+        },
+        "dev": {
+            "cache": false,
+            "persistent": true
+        },
+        "lint": {},
+        "test": {}
+    }
+}

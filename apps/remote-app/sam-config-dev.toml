@@ -1,0 +1,13 @@
+version = 0.1
+[default.deploy.parameters]
+stack_name = "python-editor-forge-dev"
+resolve_s3 = true
+s3_prefix = "python-editor-forge-dev"
+region = "us-east-1"
+capabilities = "CAPABILITY_NAMED_IAM"
+image_repositories = []
+fail_on_empty_changeset = false
+[default.sync.parameters]
+beta_features = true
+[default.build.parameters]
+

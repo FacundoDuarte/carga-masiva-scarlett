@@ -1,0 +1,10 @@
+
+[0m[2m[35m$[0m [2m[1msam build && sam deploy --config-file sam-config-dev.toml[0m
+Building codeuri: [35m/Users/coco/Documents/projects/carga-masiva-scarlett/apps/remote-app/src/[0m[95mvalidate_session[0m runtime: nodejs20.x  
+metadata: [1m{[0m[32m'BuildMethod'[0m: [32m'esbuild'[0m[1m}[0m architecture: x86_64 functions: ValidateSessionFunction                                     
+package.json file not found. Bundling source without installing dependencies.                                                    
+ Running NodejsNpmEsbuildBuilder:EsbuildBundle                                                                                   
+[31m
+Build Failed[0m
+Error: NodejsNpmEsbuildBuilder:EsbuildBundle - entry point /Users/coco/Documents/projects/carga-masiva-scarlett/apps/remote-app/src/validate_session/index does not exist
+[0m[31merror[0m[2m:[0m script [1m"build"[0m exited with code 1[0m

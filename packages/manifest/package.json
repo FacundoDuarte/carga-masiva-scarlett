@@ -1,0 +1,8 @@
+{
+  "name": "manifest",
+  "type": "module",
+  "main": "./dist/manifest.yml",
+  "scripts": {
+    "build": "node build.cjs"
+  }
+}

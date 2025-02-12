@@ -1,0 +1,13 @@
+{
+  "name": "remote-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "sam build && sam deploy --config-file sam-config-dev.toml"
+  },
+  "dependencies": {
+    "aws-lambda": "^1.0.7",
+    "utils": "*"
+  }
+}

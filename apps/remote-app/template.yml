@@ -1,0 +1,99 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: |
+  Proyecto SAM con AWS Step Functions y Lambdas en Node.js 20.x con TypeScript
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 10
+    Architectures:
+      - x86_64
+
+Resources:
+  # Función Lambda para validar la sesión
+  ValidateSessionFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+    Properties:
+      Handler: index.handler
+      CodeUri: src/validate_session/
+      Policies:
+        - AWSLambdaBasicExecutionRole
+  OperationsQueue:
+    Type: AWS::SQS::Queue
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Properties:
+      QueueName: scarlet-operations-queue
+
+  # Función Lambda para el mapeo (scarlet mapping)
+  ScarletMappingFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+    Properties:
+      Handler: index.handler
+      CodeUri: src/scarlet-mapping/
+      Policies:
+        - AWSLambdaBasicExecutionRole
+  # Función Lambda para el mapeo (scarlet mapping)
+  GetExistingIssuesFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+    Properties:
+      Handler: index.handler
+      CodeUri: src/get-existing-issues/
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  # Función Lambda para agregar la orden
+  AddOrderFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+    Properties:
+      Handler: index.handler
+      CodeUri: src/add_order/
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  # Máquina de estado (Step Functions) definida en un archivo JSON externo
+  StateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionSubstitutions:
+        ValidateSessionFunction: !GetAtt ValidateSessionFunction.Arn
+        ScarletMappingFunction: !GetAtt ScarletMappingFunction.Arn
+        GetExistingIssuesFunction: !GetAtt GetExistingIssuesFunction.Arn
+        AddOrderFunction: !GetAtt AddOrderFunction.Arn
+        OperationsQueue: !GetAtt OperationsQueue.Arn
+      Role: !GetAtt StateMachineExecutionRole.Arn
+      DefinitionUri: statemachine.json
+
+  # Rol de ejecución para la máquina de estado
+  StateMachineExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: StepFunctionsExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                  - sqs:SendMessage
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: "*"

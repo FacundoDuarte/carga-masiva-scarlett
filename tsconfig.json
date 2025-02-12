@@ -1,25 +1,18 @@
 {
+  "extends": "./tsconfig.ref.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "nodenext",
-    "lib": ["es2017", "dom"],
-    // "declaration": true,
-    "rootDir": "./",
-    // "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    // "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
+    "moduleResolution": "bundler",
+    "rootDir": ".",
     "paths": {
-      "@types/*": ["utils/types/*"],
-      "@utils/*": ["utils/*"],
-      "@src/*": ["src/*"],
-      "@components/*": ["static/frontend/src/components/*"]
-    },
-    "jsx": "react"
+      "@utils/*": ["packages/utils/*"],
+      "@utils": ["packages/utils/index.ts"],
+      "@src/*": ["apps/forge-app/src/*"]
+    }
   },
-  // "include": ["src/**/*", "utils/**/*", "static/frontend/src/**/*"],
-  "include": ["src/**/*", "utils/**/*", "utils/types/custom_fields.ts"],
-  "exclude": ["node_modules", "static/**/build", "dist"]
+  "include": ["apps/**/src/**/*", "packages/**/src/**/*"],
+  "exclude": ["node_modules", "static/**/build", "dist"],
+  "references": [
+    {"path": "./packages/utils/tsconfig.json"},
+    {"path": "./packages/web/tsconfig.json"}
+  ]
 }

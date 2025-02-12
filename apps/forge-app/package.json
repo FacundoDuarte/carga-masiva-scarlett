@@ -1,0 +1,25 @@
+{
+  "name": "forge",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "lint": "npm-run-all 'lint:*'",
+    "lint:eslint": "eslint . --quiet --ext ts,cjs,js --cache",
+    "lint:types": "tsc --noEmit",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@forge/resolver": "^1.5.25",
+    "bridge": "*",
+    "remote-app": "*",
+    "manifest": "*",
+    "web": "*"
+  },
+  "devDependencies": {
+    "@tsconfig/node18": "^18.2.2",
+    "chokidar": "^3.5.3",
+    "esbuild": "^0.19.10",
+    "zod": "^3.22.4"
+  }
+}
