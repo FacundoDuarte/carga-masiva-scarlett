@@ -19,7 +19,8 @@ import {storage} from '@forge/api';
 import {S3Client, GetObjectCommand, PutObjectCommand} from '@aws-sdk/client-s3';
 import {getSignedUrl} from '@aws-sdk/s3-request-presigner';
 import fetch from 'node-fetch';
-// import Papa from 'papaparse';
+import Papa from 'papaparse';
+
 
 const ISSUE_TYPE = 11871;
 
@@ -123,20 +124,90 @@ const client = new S3Client({
 // }
 
 resolver.define(
-  'get-jobs-status',
-  async ({payload, context}: {payload: GetJobsStatusPayload; context: any}) => {
-    console.log('payload status: ', payload);
+  'issue-operations-from-csv',
+  async ({payload, context}: {payload: IssueOperationsFromCsvPayload; context: any}) => {
     return await execute(async () => {
-      return await _getJobsStatus(payload.jobsList);
+      const {s3Key, projectId} = payload;
+      return await _handleIssueOperationsFromCsv(s3Key, projectId);
     });
   },
 );
+
+async function _handleIssueOperationsFromCsv(
+  s3Key: string,
+  projectId: number,
+): Promise<{ticket: Invoice; id: string}[]> {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: s3Key,
+    });
+
+    const signedUrl = await getSignedUrl(client, command, {
+      expiresIn: 3600,
+    });
+    const response = await fetch(signedUrl);
+    const csvText = await response.text();
+
+    const parsedData = Papa.parse<CsvRow>(csvText, {
+      header: true, // Asume que la primera fila es el encabezado
+      skipEmptyLines: true,
+    }).data;
+
+    const scarlettIds: string[] = parsedData.map((row) => row[CsvRowHeaders.uuid]);
+    const existingIssues = await getExistingIssues(
+      `"Scarlett ID[Labels]" in (${scarlettIds.map((id) => `'${id}'`).join(', ')})`,
+      [CF.scarlett_id, CF.summary],
+    );
+
+    // Remover las filas que tienen '0' en la columna 'uuid'
+    const filteredData = parsedData.filter((row: CsvRow) => row[CsvRowHeaders.uuid] !== '0');
+
+    // Iterar sobre cada fila filtrada del CSV
+    const results = [];
+    for (const row of filteredData) {
+      const _issueExist = existingIssues.some(
+        (issue) => issue.fields[CF.summary] == row[CsvRowHeaders.uuid],
+      );
+
+      let ticket: Partial<Issue> = {
+        key: existingIssues?.find((issue) => issue.fields[CF.summary] == row[CsvRowHeaders.uuid])
+          ?.key,
+        fields: {
+          project: {id: projectId},
+          issuetype: {id: ISSUE_TYPE},
+          summary: row[CsvRowHeaders.uuid],
+        },
+      };
+
+      // Iterar sobre el mapeo y asignar valores al ticket
+      for (const [cfField, mapFunction] of Object.entries(scarlettMapping)) {
+        ticket.fields[cfField] = mapFunction(row as CsvRow); // Llama a la función de mapeo
+      }
+      // Mantener las propiedades calculadas
+
+      const jobId = await queue.push({
+        ...ticket,
+        method: _issueExist ? 'PUT' : 'POST',
+      } as OperationPayload);
+      results.push({
+        ticket: ticket as Invoice,
+        jobId: jobId,
+        id: row[CsvRowHeaders.uuid] as string,
+      });
+    }
+
+    return results;
+  } catch (error) {
+    console.error('Error al procesar el archivo CSV desde S3:', error);
+    throw new Error('Error al procesar el archivo CSV');
+  }
+}
 
 async function _getJobsStatus(jobsList: string[]) {
   const updatedJobs: Job[] = [];
 
   for (const jobId of jobsList) {
-    console.log('consultando jobId: ', jobId);
     const jobStatus = await _getJobStats(jobId);
     updatedJobs.push({
       id: jobId,
@@ -167,8 +238,11 @@ resolver.define(
 );
 
 async function _getIssueStatus(payload: GetIssueStatusPayload) {
-  const formattedQuery = `key in (${payload.issueKeys.map((id) => `"${id}"`).join(', ')})`;
+  const {issueKeys} = payload;
+
+  const formattedQuery = `key in (${issueKeys.map((id) => `"${id}"`).join(', ')})`;
   const issues = (await getExistingIssues(formattedQuery, [CF.status])) ?? [];
+  
   return (
     issues.map((issue) => ({
       key: issue.key,
@@ -217,7 +291,6 @@ async function _getUploadUrl(payload: GetUploadUrlPayload) {
   const signedUrl = await getSignedUrl(client, command, {
     expiresIn: 3600,
   });
-  console.log(`objectKey:${objectKey},signedUrl: ${signedUrl}`);
   return {signedUrl, s3Key: objectKey};
 }
 
@@ -252,12 +325,70 @@ async function _getJobStats(jobId: string): Promise<JobStatus> {
 
 // Modificar la función execute para manejar mejor los casos donde jobId podría ser undefined
 async function execute<T>(operation: () => Promise<T>): Promise<T> {
-  console.log('Operation name:', operation.name);
   try {
     return await operation();
   } catch (error) {
     console.error('Error en la operación:', error);
   }
 }
+
+resolver.define('get-tickets-summary', async (req) => {
+  const { operationId } = req.payload;
+
+  const operationTickets = `scarlett`;
+  const iterations = Math.ceil(100 / 20);
+
+  let tickets = [];
+  let cursor = "";
+  for (let i = 0; i < iterations; i++) {
+    let query = storage.query().where('key', {condition: "STARTS_WITH", value: operationTickets}).limit(20).cursor(cursor);
+    const res =  await query.getMany();
+    cursor = res.nextCursor;
+    tickets = tickets.concat(res.results);
+  }
+  console.log(tickets);
+  
+  if (!operationId) {
+    throw new Error('No se encontro un operationId');
+  }
+
+  if (operationId === 'test-operation') {
+    return {
+      creado: 2,
+      editado: 1,
+      omitido: 3,
+      error: 0
+    };
+  }
+
+  
+  const state = {
+    creado: 0,
+    editado: 0,
+    omitido: 0,
+    error: 0,
+  };
+/*
+  for (const item of listResult.results) {
+    const ticket = item.value as any;
+
+    if (ticket) {
+      const lowerState = ticket.state.toLowerCase();
+
+      if (lowerState === 'creado') {
+        state.creado++;
+      } else if (lowerState === 'editado') {
+        state.editado++;
+      } else if (lowerState === 'omitido') {
+        state.omitido++;
+      } else if (lowerState === 'error') {
+        state.error++;
+      }
+    }
+  }
+*/
+  return state;
+});
+
 
 export const handler: ReturnType<typeof resolver.getDefinitions> = resolver.getDefinitions();

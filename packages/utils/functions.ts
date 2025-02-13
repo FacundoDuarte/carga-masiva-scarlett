@@ -38,15 +38,12 @@ export const requestTicketsJira = async (payload: Partial<Invoice>) => {
   }
   if (response.status !== 204) {
     const data = await response.json();
-    console.log(`Respuesta al ${method}:`, data);
     return data;
   }
-  console.log(`Operación ${method} exitosa sin contenido (204)`);
   return;
 };
 
 export async function getExistingIssues(query: string, fields: string[]): Promise<Issue[]> {
-  console.log(`GET EXISTING ISSUES :${query}, ${fields}`);
 
   const response = await api.asApp().requestJira(route`/rest/api/3/search/jql`, {
     method: 'POST',
