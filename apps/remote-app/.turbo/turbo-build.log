@@ -1,10 +1,138 @@
 
-[0m[2m[35m$[0m [2m[1msam build && sam deploy --config-file sam-config-dev.toml[0m
-Building codeuri: [35m/Users/coco/Documents/projects/carga-masiva-scarlett/apps/remote-app/src/[0m[95mvalidate_session[0m runtime: nodejs20.x  
-metadata: [1m{[0m[32m'BuildMethod'[0m: [32m'esbuild'[0m[1m}[0m architecture: x86_64 functions: ValidateSessionFunction                                     
-package.json file not found. Bundling source without installing dependencies.                                                    
- Running NodejsNpmEsbuildBuilder:EsbuildBundle                                                                                   
-[31m
-Build Failed[0m
-Error: NodejsNpmEsbuildBuilder:EsbuildBundle - entry point /Users/coco/Documents/projects/carga-masiva-scarlett/apps/remote-app/src/validate_session/index does not exist
-[0m[31merror[0m[2m:[0m script [1m"build"[0m exited with code 1[0m
+[0m[2m[35m$[0m [2m[1msam build && chmod +x ./scripts/deploy.sh && ./scripts/deploy.sh[0m
+Building codeuri: [35m/Users/coco/Documents/projects/carga-masiva-scarlett/apps/remote-app/src/[0m[95mvalidate-session[0m runtime: nodejs20.x metadata: [1m{[0m[32m'BuildMethod'[0m: [32m'esbuild'[0m[1m}[0m     
+architecture: x86_64 functions: ValidateSessionFunction                                                                                                                  
+package.json file not found. Bundling source without installing dependencies.                                                                                            
+ Running NodejsNpmEsbuildBuilder:EsbuildBundle                                                                                                                           
+Building codeuri: [35m/Users/coco/Documents/projects/carga-masiva-scarlett/apps/remote-app/src/[0m[95mscarlet-mapping[0m runtime: nodejs20.x metadata: [1m{[0m[32m'BuildMethod'[0m: [32m'esbuild'[0m[1m}[0m      
+architecture: x86_64 functions: ScarletMappingFunction                                                                                                                   
+package.json file not found. Bundling source without installing dependencies.                                                                                            
+ Running NodejsNpmEsbuildBuilder:EsbuildBundle                                                                                                                           
+Building codeuri: [35m/Users/coco/Documents/projects/carga-masiva-scarlett/apps/remote-app/src/[0m[95mget-existing-issues[0m runtime: nodejs20.x metadata: [1m{[0m[32m'BuildMethod'[0m: [32m'esbuild'[0m[1m}[0m  
+architecture: x86_64 functions: GetExistingIssuesFunction                                                                                                                
+package.json file not found. Bundling source without installing dependencies.                                                                                            
+ Running NodejsNpmEsbuildBuilder:EsbuildBundle                                                                                                                           
+Building codeuri: [35m/Users/coco/Documents/projects/carga-masiva-scarlett/apps/remote-app/src/[0m[95msave-storage[0m runtime: nodejs20.x metadata: [1m{[0m[32m'BuildMethod'[0m: [32m'esbuild'[0m[1m}[0m         
+architecture: x86_64 functions: SaveStorage                                                                                                                              
+package.json file not found. Bundling source without installing dependencies.                                                                                            
+ Running NodejsNpmEsbuildBuilder:EsbuildBundle                                                                                                                           
+[32m
+Build Succeeded[0m
+[33m
+Built Artifacts  : .aws-sam/build
+Built Template   : .aws-sam/build/template.yaml
+
+Commands you can use next
+=========================
+[*] Validate SAM template: sam validate
+[*] Invoke Function: sam local invoke
+[*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
+[*] Deploy: sam deploy --guided[0m
+
+		Managed S3 bucket: aws-sam-cli-managed-default-samclisourcebucket-bxbylykyfiak
+		A different default S3 bucket can be set in samconfig.toml
+		Or by specifying --s3-bucket explicitly.
+File with same data already exists at scarlet-operations-dev/f7819e14e13b85f3d67751a67562a42f, skipping upload                                                           
+File with same data already exists at scarlet-operations-dev/5d390ec2ba85e4e0fcc4c95bbcb25f66, skipping upload                                                           
+File with same data already exists at scarlet-operations-dev/91e841b9e2834df3fd9237d2863f8bbb, skipping upload                                                           
+File with same data already exists at scarlet-operations-dev/532725dbd51a15831054666089fdc374, skipping upload                                                           
+File with same data already exists at scarlet-operations-dev/3ac4815816765b575de2bd2fa4c98a25, skipping upload                                                           
+[33m
+	Deploying with following values
+	===============================[0m
+	Stack name                   : scarlet-operations-dev
+	Region                       : us-east-1
+	Confirm changeset            : False
+	Disable rollback             : False
+	Deployment s3 bucket         : aws-sam-cli-managed-default-samclisourcebucket-bxbylykyfiak
+	Capabilities                 : ["CAPABILITY_IAM"]
+	Parameter overrides          : {}
+	Signing Profiles             : {}
+[33m
+Initiating deployment
+=====================
+[0m
+File with same data already exists at scarlet-operations-dev/11fe9cc3754d2dcce9e746a9a334c49f.template, skipping upload                                                  
+
+
+Waiting for changeset to be created..
+
+[1mCloudFormation stack changeset[0m
+[33m---------------------------------------------------------------------------------------------------------------------------------------------------------------------[0m
+[33mOperation                                 LogicalResourceId                         ResourceType                              Replacement                             [0m
+[33m---------------------------------------------------------------------------------------------------------------------------------------------------------------------[0m
+[32m+ Add                                     ExecutionPipe                             AWS::Pipes::Pipe                          N/A                                     [0m
+[32m+ Add                                     ExecutionQueue                            AWS::SQS::Queue                           N/A                                     [0m
+[32m+ Add                                     SaveStorageRole                           AWS::IAM::Role                            N/A                                     [0m
+[32m+ Add                                     SaveStorage                               AWS::Lambda::Function                     N/A                                     [0m
+[32m+ Add                                     ValidateSessionFunctionUrl                AWS::Lambda::Url                          N/A                                     [0m
+[33m* Modify                                  GetExistingIssuesFunction                 AWS::Lambda::Function                     False                                   [0m
+[33m* Modify                                  ScarletMappingFunction                    AWS::Lambda::Function                     False                                   [0m
+[33m* Modify                                  StateMachine                              AWS::StepFunctions::StateMachine          True                                    [0m
+[33m* Modify                                  ValidateSessionFunction                   AWS::Lambda::Function                     False                                   [0m
+[31m- Delete                                  AddOrderFunctionRole                      AWS::IAM::Role                            N/A                                     [0m
+[31m- Delete                                  AddOrderFunction                          AWS::Lambda::Function                     N/A                                     [0m
+[33m---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+[0m
+
+Changeset created successfully. arn:aws:cloudformation:us-east-1:529202746267:changeSet/samcli-deploy1739427343/5ecc42a9-2893-4594-83ef-21508855f195
+
+
+2025-02-13 03:15:57 - Waiting for stack create/update to complete
+[1m
+CloudFormation events from stack operations (refresh every 5.0 seconds)[0m
+[33m---------------------------------------------------------------------------------------------------------------------------------------------------------------------[0m
+[33mResourceStatus                            ResourceType                              LogicalResourceId                         ResourceStatusReason                    [0m
+[33m---------------------------------------------------------------------------------------------------------------------------------------------------------------------[0m
+[33mUPDATE_IN_PROGRESS                        AWS::CloudFormation::Stack                scarlet-operations-dev                    User Initiated                          [0m
+[33mCREATE_IN_PROGRESS                        AWS::IAM::Role                            SaveStorageRole                           -                                       [0m
+[33mCREATE_IN_PROGRESS                        AWS::SQS::Queue                           ExecutionQueue                            -                                       [0m
+[33mCREATE_IN_PROGRESS                        AWS::SQS::Queue                           ExecutionQueue                            Resource creation Initiated             [0m
+[33mCREATE_IN_PROGRESS                        AWS::IAM::Role                            SaveStorageRole                           Resource creation Initiated             [0m
+[33mUPDATE_IN_PROGRESS                        AWS::Lambda::Function                     GetExistingIssuesFunction                 -                                       [0m
+[33mUPDATE_IN_PROGRESS                        AWS::Lambda::Function                     ValidateSessionFunction                   -                                       [0m
+[33mUPDATE_IN_PROGRESS                        AWS::Lambda::Function                     ScarletMappingFunction                    -                                       [0m
+[33mUPDATE_FAILED                             AWS::Lambda::Function                     GetExistingIssuesFunction                 Resource handler returned message:      [0m
+[33m                                                                                                                              "Lambda function scarlet-operations-    [0m
+[33m                                                                                                                              dev-                                    [0m
+[33m                                                                                                                              GetExistingIssuesFunction-9Dh2fFat5Hhq  [0m
+[33m                                                                                                                              could not be found" (RequestToken:      [0m
+[33m                                                                                                                              187c77cf-af3e-c690-213c-c039e5743cec,   [0m
+[33m                                                                                                                              HandlerErrorCode: NotFound)             [0m
+[33mUPDATE_FAILED                             AWS::Lambda::Function                     ValidateSessionFunction                   Resource handler returned message:      [0m
+[33m                                                                                                                              "Lambda function scarlet-operations-    [0m
+[33m                                                                                                                              dev-ValidateSessionFunction-            [0m
+[33m                                                                                                                              IzNxZHfapy5l could not be found"        [0m
+[33m                                                                                                                              (RequestToken:                          [0m
+[33m                                                                                                                              78a56710-0d55-dd33-1079-400bce884530,   [0m
+[33m                                                                                                                              HandlerErrorCode: NotFound)             [0m
+[31mCREATE_FAILED                             AWS::IAM::Role                            SaveStorageRole                           Resource creation cancelled             [0m
+[33mUPDATE_FAILED                             AWS::Lambda::Function                     ScarletMappingFunction                    Resource handler returned message:      [0m
+[33m                                                                                                                              "Lambda function scarlet-operations-    [0m
+[33m                                                                                                                              dev-ScarletMappingFunction-gveXzzvYQNx2 [0m
+[33m                                                                                                                              could not be found" (RequestToken:      [0m
+[33m                                                                                                                              5f20cf5a-90df-e241-a7d8-5074f1218dcc,   [0m
+[33m                                                                                                                              HandlerErrorCode: NotFound)             [0m
+[31mCREATE_FAILED                             AWS::SQS::Queue                           ExecutionQueue                            Resource creation cancelled             [0m
+[31mUPDATE_ROLLBACK_IN_PROGRESS               AWS::CloudFormation::Stack                scarlet-operations-dev                    The following resource(s) failed to     [0m
+[31m                                                                                                                              create: [SaveStorageRole,               [0m
+[31m                                                                                                                              ExecutionQueue]. The following          [0m
+[31m                                                                                                                              resource(s) failed to update:           [0m
+[31m                                                                                                                              [ValidateSessionFunction,               [0m
+[31m                                                                                                                              GetExistingIssuesFunction,              [0m
+[31m                                                                                                                              ScarletMappingFunction].                [0m
+[32mUPDATE_COMPLETE                           AWS::Lambda::Function                     ValidateSessionFunction                   -                                       [0m
+[32mUPDATE_COMPLETE                           AWS::Lambda::Function                     GetExistingIssuesFunction                 -                                       [0m
+[32mUPDATE_COMPLETE                           AWS::Lambda::Function                     ScarletMappingFunction                    -                                       [0m
+[31mUPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PRO   AWS::CloudFormation::Stack                scarlet-operations-dev                    -                                       [0m
+[31mGRESS                                                                                                                                                                 [0m
+[31mDELETE_IN_PROGRESS                        AWS::SQS::Queue                           ExecutionQueue                            -                                       [0m
+[31mDELETE_IN_PROGRESS                        AWS::IAM::Role                            SaveStorageRole                           -                                       [0m
+[32mDELETE_COMPLETE                           AWS::IAM::Role                            SaveStorageRole                           -                                       [0m
+[32mDELETE_COMPLETE                           AWS::SQS::Queue                           ExecutionQueue                            -                                       [0m
+[33mUPDATE_ROLLBACK_COMPLETE                  AWS::CloudFormation::Stack                scarlet-operations-dev                    -                                       [0m
+[33m---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+[0m
+Error: Failed to create/update the stack: scarlet-operations-dev, Waiter StackUpdateComplete failed: Waiter encountered a terminal failure state: For expression "Stacks[].StackStatus" we matched expected path: "UPDATE_ROLLBACK_COMPLETE" at least once
+
+An error occurred (ValidationError) when calling the DescribeStacks operation: Stack with id remote-app does not exist

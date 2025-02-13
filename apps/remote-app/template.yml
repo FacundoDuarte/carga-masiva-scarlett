@@ -17,7 +17,7 @@ Resources:
       BuildMethod: esbuild
     Properties:
       Handler: index.handler
-      CodeUri: src/validate_session/
+      CodeUri: src/validate-session/
       Policies:
         - AWSLambdaBasicExecutionRole
   OperationsQueue:
@@ -26,7 +26,12 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       QueueName: scarlet-operations-queue
-
+  ExecutionQueue:
+    Type: AWS::SQS::Queue
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Properties:
+      QueueName: scarlet-executions-queue
   # Función Lambda para el mapeo (scarlet mapping)
   ScarletMappingFunction:
     Type: AWS::Serverless::Function
@@ -49,16 +54,33 @@ Resources:
         - AWSLambdaBasicExecutionRole
 
   # Función Lambda para agregar la orden
-  AddOrderFunction:
+  SaveStorage:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: esbuild
     Properties:
       Handler: index.handler
-      CodeUri: src/add_order/
+      CodeUri: src/save-storage/
       Policies:
         - AWSLambdaBasicExecutionRole
-
+  ExecutionPipe:
+    Type: AWS::Pipes::Pipe
+    DependsOn: []
+    Properties:
+      RoleArn: !GetAtt StateMachineExecutionRole.Arn
+      Name: scarlet-execution-pipe
+      DesiredState: RUNNING
+      Source:
+        !GetAtt ExecutionQueue.Arn
+        # Fn::Sub: >-
+        #   arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:scheme-execution-queue
+      SourceParameters:
+        SqsQueueParameters:
+          BatchSize: 1
+      TargetParameters:
+        StepFunctionStateMachineParameters:
+          InvocationType: FIRE_AND_FORGET
+      Target: !GetAtt StateMachine.Arn
   # Máquina de estado (Step Functions) definida en un archivo JSON externo
   StateMachine:
     Type: AWS::Serverless::StateMachine
@@ -67,10 +89,11 @@ Resources:
         ValidateSessionFunction: !GetAtt ValidateSessionFunction.Arn
         ScarletMappingFunction: !GetAtt ScarletMappingFunction.Arn
         GetExistingIssuesFunction: !GetAtt GetExistingIssuesFunction.Arn
-        AddOrderFunction: !GetAtt AddOrderFunction.Arn
+        SaveStorage: !GetAtt SaveStorage.Arn
         OperationsQueue: !GetAtt OperationsQueue.Arn
       Role: !GetAtt StateMachineExecutionRole.Arn
       DefinitionUri: statemachine.json
+      Name: scarlet-execution-machine
 
   # Rol de ejecución para la máquina de estado
   StateMachineExecutionRole:
@@ -83,6 +106,7 @@ Resources:
             Principal:
               Service:
                 - states.amazonaws.com
+                - pipes.amazonaws.com
             Action:
               - sts:AssumeRole
       Policies:
@@ -94,6 +118,18 @@ Resources:
                 Action:
                   - lambda:InvokeFunction
                   - sqs:SendMessage
-                  - s3:GetObject
-                  - s3:PutObject
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - states:StartExecution
                 Resource: "*"
+  ValidateSessionFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt ValidateSessionFunction.Arn
+      AuthType: AWS_IAM
+
+Outputs:
+  ExecutionTriggerUrl:
+    Description: "Scarlet Execution Trigger Url"
+    Value: !GetAtt ValidateSessionFunctionUrl.FunctionUrl

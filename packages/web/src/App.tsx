@@ -128,7 +128,30 @@ export default function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isProcessing, setIsProcessing] = useState<Status>(Status.init);
-
+  const [operationID, setoperationID] = useState("");
+  const [jobsCount, setjobsCount] = useState({
+    edited: 0,
+    created: 0,
+    omited: 0,
+    error: 0,
+  });
+  //EJEMPLO DE COMO QUEDARIA EL STORAGE
+  /*
+{
+'operation-5438957':{
+omited:0,created:0, error:0, edited:0, projectId: 10002, status:inProgress}
+},
+'operation-5438943':{
+omited:20,created:17, error:0, edited:1000, projectId: 10014, status:done}
+}
+'operation-5438943':{
+omited:20,created:17, error:0, edited:1000, projectId: 10002, status:done}
+}
+'operation-5438943':{
+omited:20,created:17, error:0, edited:1000, projectId: 10002, status:done}
+}
+}
+*/
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const ROWS_PER_PAGE = 10;
@@ -155,6 +178,14 @@ export default function App() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    invoke("persist-new-state-count", { jobsCount });
+  }, [jobsCount]);
+
+  // resolve.define('persiste-new-state-count', () => {
+  // storage.set(operationId, jobsCount)
+  // })
 
   // --------------------------------------
   // Efecto: Obtener contexto Forge
@@ -475,7 +506,7 @@ async function _getIssueKeyFromJob(jobId: string): Promise<string> {
 async function _invokeCsvOperations(
   s3Key: string,
   projectId: string
-): Promise<{ ticket: Partial<Invoice>; jobId: string }[]> {
+): Promise<{ operationId: string }> {
   return await invoke("issue-operations-from-csv", {
     s3Key,
     projectId,

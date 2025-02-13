@@ -1,7 +1,6 @@
 {
 	"Comment": "Distributed map that reads CSV file for order data and detects delayed orders",
 	"StartAt": "Operate Rows",
-	"QueryLanguage": "JSONata",
 	"States": {
 		"Operate Rows": {
 			"Type": "Map",
@@ -15,11 +14,11 @@
 					"Lambda Invoke": {
 						"Type": "Task",
 						"Resource": "arn:aws:states:::lambda:invoke",
-						"OutputPath": "$.Payload",
 						"Parameters": {
-							"Payload.$": "$",
-							"FunctionName": "${GetExistingIssuesFunction}"
+							"FunctionName": "${GetExistingIssuesFunction}",
+							"Payload.$": "$"
 						},
+						"OutputPath": "$.Payload",
 						"Retry": [
 							{
 								"ErrorEquals": [
@@ -30,8 +29,7 @@
 								],
 								"IntervalSeconds": 1,
 								"MaxAttempts": 3,
-								"BackoffRate": 2,
-								"JitterStrategy": "FULL"
+								"BackoffRate": 2
 							}
 						],
 						"Next": "Choice"
@@ -50,91 +48,44 @@
 					"Store Operation Result: Omitted": {
 						"Type": "Task",
 						"Resource": "arn:aws:states:::lambda:invoke",
-						"Output": "{% $states.result.Payload %}",
-						"Arguments": {
-							"FunctionName": "${AddOrderFunction}",
-							"Payload": "$"
-						},
-						"Retry": [
-							{
-								"ErrorEquals": [
-									"Lambda.ServiceException",
-									"Lambda.AWSLambdaException",
-									"Lambda.SdkClientException",
-									"Lambda.TooManyRequestsException"
-								],
-								"IntervalSeconds": 1,
-								"MaxAttempts": 3,
-								"BackoffRate": 2,
-								"JitterStrategy": "FULL"
-							}
-						],
-						"End": true,
 						"Parameters": {
 							"FunctionName": "${AddOrderFunction}",
 							"Payload": {
 								"method": "OMIT",
-								"issueKey": "$.issueKey"
+								"issueKey.$": "$.issueKey"
 							}
-						}
+						},
+						"End": true
 					},
 					"ScarletMapping": {
 						"Type": "Task",
 						"Resource": "arn:aws:states:::lambda:invoke",
-						"Output": "{% $states.result.Payload %}",
-						"Arguments": {
-							"FunctionName": "${ScarletMappingFunction}",
-							"Payload": "$"
-						},
-						"Retry": [
-							{
-								"ErrorEquals": [
-									"Lambda.ServiceException",
-									"Lambda.AWSLambdaException",
-									"Lambda.SdkClientException",
-									"Lambda.TooManyRequestsException"
-								],
-								"IntervalSeconds": 1,
-								"MaxAttempts": 3,
-								"BackoffRate": 2,
-								"JitterStrategy": "FULL"
-							}
-						],
-						"Next": "SendDelayedOrder",
 						"Parameters": {
 							"FunctionName": "${ScarletMappingFunction}",
 							"Payload.$": "$"
-						}
+						},
+						"Next": "SendDelayedOrder"
 					},
 					"SendDelayedOrder": {
 						"Type": "Task",
 						"Resource": "arn:aws:states:::sqs:sendMessage",
-						"Arguments": {
-							"QueueUrl": "https://sqs.us-east-1.amazonaws.com/529202746267/scarlet-operations-queue",
-							"MessageBody": "$"
-						},
-						"Output": "$",
-						"End": true,
 						"Parameters": {
 							"QueueUrl": "${OperationsQueue}",
 							"MessageBody.$": "$"
-						}
+						},
+						"End": true
 					}
 				}
 			},
 			"ItemReader": {
 				"Resource": "arn:aws:states:::s3:getObject",
-				"ReaderConfig": {
-					"InputType": "CSV",
-					"CSVHeaderLocation": "FIRST_ROW"
-				},
-				"Arguments": {
-					"Bucket": "scarlet-meli-dev",
-					"Key": "$.fileId"
-				},
 				"Parameters": {
 					"Bucket.$": "$.bucketName",
 					"Key.$": "$.filePath"
+				},
+				"ReaderConfig": {
+					"InputType": "CSV",
+					"CSVHeaderLocation": "FIRST_ROW"
 				}
 			},
 			"MaxConcurrency": 1000,
@@ -145,14 +96,6 @@
 			},
 			"ResultWriter": {
 				"Resource": "arn:aws:states:::s3:putObject",
-				"Arguments": {
-					"Bucket": "scarlet-meli-dev",
-					"Prefix": "executions"
-				},
-				"WriterConfig": {
-					"OutputType": "JSON",
-					"Transformation": "NONE"
-				},
 				"Parameters": {
 					"Bucket": "scarlet-meli-dev",
 					"Prefix": "uploads"

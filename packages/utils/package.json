@@ -4,6 +4,6 @@
   "dependencies": {
     "@forge/api": "^4.3.0",
     "aws-lambda": "^1.0.7",
-    "jose": "^5.9.6"
+    "jose": "^4.15.0"
   }
 }

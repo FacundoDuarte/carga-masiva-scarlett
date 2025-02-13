@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "sam build && sam deploy --config-file sam-config-dev.toml"
+    "build": "sam build && chmod +x ./scripts/deploy.sh && ./scripts/deploy.sh"
   },
   "dependencies": {
     "aws-lambda": "^1.0.7",
+    "jose": "^5.9.6",
     "utils": "*"
   }
 }

@@ -1,5 +1,5 @@
 import {Handler} from 'aws-lambda';
-import {scarlettMapping} from 'utils/custom_fields';
+import {scarlettMapping} from '@utils/custom_fields';
 
 export const handler: Handler = async (event, _context) => {
   // Procesa la información del CSV (o de la orden) contenida en event.

@@ -3,6 +3,7 @@ export const enum JobStatus {
   inProgress = 'inProgress',
   success = 'success',
   failed = 'failed',
+  omit = 'omit',
 }
 export const enum Appearance {
   default = 'default',

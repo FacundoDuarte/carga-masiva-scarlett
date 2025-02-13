@@ -1,8 +1,8 @@
 version = 0.1
 [default.deploy.parameters]
-stack_name = "python-editor-forge-dev"
+stack_name = "scarlet-operations-dev"
 resolve_s3 = true
-s3_prefix = "python-editor-forge-dev"
+s3_prefix = "scarlet-operations-dev"
 region = "us-east-1"
 capabilities = "CAPABILITY_NAMED_IAM"
 image_repositories = []

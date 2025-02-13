@@ -6,12 +6,13 @@
     ],
     "tasks": {
         "build": {
+            "cache": false,
             "dependsOn": [
                 "^build"
             ],
             "outputs": [
                 "dist/**",
-                ".next/**",
+                ".aws_sam/**",
                 "build/**"
             ],
             "inputs": [

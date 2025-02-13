@@ -6,7 +6,7 @@ modules:
         function: resolver
         method: operations-queue-listener
   jira:projectPage:
-    - key: scarlet-operations-project-page
+    - key: creacion-masiva-scarlett-ui-kit-hello-world-project-page
       resource: main
       resolver:
         function: resolver
@@ -29,21 +29,15 @@ permissions:
     fetch:
       client:
         - remote: iss-rem-bucket
-        - https://issue-reminder-app-dev-issrem-529202746267.s3.{{AWS-REGION}}.amazonaws.com
+        - https://issue-reminder-app-dev-issrem-529202746267.s3.us-east-1.amazonaws.com
         - issue-reminder-app-dev-issrem-529202746267.s3.amazonaws.com
-        - {{EXECUTION_TRIGGER_URL}}
 remotes:
   - key: iss-rem-bucket
-    baseUrl: https://issue-reminder-app-dev-issrem-529202746267.s3.{{AWS-REGION}}.amazonaws.com
-    operations:
-      - compute
-      - fetch
-  - key: execution-trigger-remote
-    baseUrl: {{EXECUTION_TRIGGER_URL}}
+    baseUrl: https://issue-reminder-app-dev-issrem-529202746267.s3.us-east-1.amazonaws.com
     operations:
       - compute
       - fetch
 app:
   runtime:
     name: nodejs20.x
-  id: ari:cloud:ecosystem::app/{{APP-ID}}
+  id: ari:cloud:ecosystem::app/e288d60c-ca8d-4d94-8a0a-6730f3786ab3

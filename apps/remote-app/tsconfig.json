@@ -1,8 +1,15 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "target": "ES6"
+    "target": "ES6",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@utils/*": ["../../packages/utils/*"]
+    },
+    "esModuleInterop": true
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "../../packages/utils/**/*.ts"],
   "exclude": ["node_modules"]
 }

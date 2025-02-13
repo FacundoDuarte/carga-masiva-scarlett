@@ -1,7 +1,8 @@
 import api, {route} from '@forge/api';
 import {Invoice, Issue} from './types';
 // import { requestTicketsJira } from '../../utils/functions';
-import jose from 'jose';
+import {SignJWT, jwtVerify, createRemoteJWKSet} from 'jose';
+
 const QUERY_MAX_RESULTS: number = 5000;
 
 const validateIssueKey = (method: string, issueKey?: string) => {
@@ -64,8 +65,21 @@ export async function getExistingIssues(query: string, fields: string[]): Promis
 
 export const validateContextToken = async (invocationToken, appId) => {
   const jwksUrl = 'https://forge.cdn.prod.atlassian-dev.net/.well-known/jwks.json';
-  const JWKS = jose.createRemoteJWKSet(new URL(jwksUrl));
+  const JWKS = createRemoteJWKSet(new URL(jwksUrl) as URL);
 
-  const payload = await jose.jwtVerify(invocationToken, JWKS, {audience: appId});
-  return payload;
+  try {
+    const payload = await jwtVerify(invocationToken, JWKS, {
+      audience: `ari:cloud:ecosystem::app/${appId}`,
+    });
+    console.log(payload);
+    //   const {
+    //     // payload:{
+    //     // app: {apiBaseUrl},
+
+    //   // }
+    //  }= payload;
+    return payload;
+  } catch (e) {
+    console.error(e);
+  }
 };
