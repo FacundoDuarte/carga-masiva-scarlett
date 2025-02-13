@@ -332,62 +332,46 @@ async function execute<T>(operation: () => Promise<T>): Promise<T> {
   }
 }
 
-resolver.define('get-tickets-summary', async (req) => {
-  const { operationId } = req.payload;
+resolver.define('persist-status-storage', async (req) => {
+  const { executionId, ticketStates } = req.payload;
+  
+  if (!executionId) {
+    throw new Error("No se proporcionó un executionId");
+  }
+  
+  if (!ticketStates) {
+    throw new Error("No se proporcionó ticketStates");
+  }
+  
+  const key = `scarlet-execution-${executionId}`;
+  
+  await storage.set(key, ticketStates);
 
-  const operationTickets = `scarlett`;
+});
+
+resolver.define('get-tickets-states', async (req) => {
+
+  const operationTickets = `scarlet-operation`;
   const iterations = Math.ceil(100 / 20);
 
   let tickets = [];
   let cursor = "";
   for (let i = 0; i < iterations; i++) {
     let query = storage.query().where('key', {condition: "STARTS_WITH", value: operationTickets}).limit(20).cursor(cursor);
-    const res =  await query.getMany();
+    const res = await query.getMany();
     cursor = res.nextCursor;
     tickets = tickets.concat(res.results);
   }
-  console.log(tickets);
-  
-  if (!operationId) {
-    throw new Error('No se encontro un operationId');
-  }
 
-  if (operationId === 'test-operation') {
-    return {
-      creado: 2,
-      editado: 1,
-      omitido: 3,
-      error: 0
-    };
-  }
+  const summary = tickets.reduce((acc, ticket) => {
+    const state = ticket.value; // {key: 'scarlet-operation-${operationId}', value: "omited"}
+    acc[state] += 1
+    return acc;
+  }, { created: 0, edited: 0, omitido: 0, error: 0 });
 
-  
-  const state = {
-    creado: 0,
-    editado: 0,
-    omitido: 0,
-    error: 0,
-  };
-/*
-  for (const item of listResult.results) {
-    const ticket = item.value as any;
+  await Promise.all(tickets.map(ticket => storage.delete(ticket.key)));
 
-    if (ticket) {
-      const lowerState = ticket.state.toLowerCase();
-
-      if (lowerState === 'creado') {
-        state.creado++;
-      } else if (lowerState === 'editado') {
-        state.editado++;
-      } else if (lowerState === 'omitido') {
-        state.omitido++;
-      } else if (lowerState === 'error') {
-        state.error++;
-      }
-    }
-  }
-*/
-  return state;
+  return summary; // {created: number, edited: number, omited: number, error: number, projectId: number}
 });
 
 

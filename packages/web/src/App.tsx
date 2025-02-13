@@ -7,7 +7,7 @@ import { invoke, view, router } from '@forge/bridge';
 import { FullContext } from '@forge/bridge/out/types';
 import SectionMessage, { Appearance } from '@atlaskit/section-message';
 import { DynamicTableStateless } from '@atlaskit/dynamic-table';
-import Lozenge from '@atlaskit/lozenge';
+import { TicketStates } from "utils/types";
 
 const enum Status {
   init,
@@ -26,15 +26,16 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState<Status>(Status.init);
 
   // Estado para el operationId que se obtiene al invocar la operación con el CSV
-  const [operationId, setOperationId] = useState<string | null>(null);
+  const [executionId, setExecutionId] = useState<string | null>(null);
 
   // Estado para almacenar el resumen de tickets
-  const [ticketsState, setTicketState] = useState<{
-    creado: number;
-    editado: number;
-    omitido: number;
-    error: number;
-  }>({ creado: 0, editado: 0, omitido: 0, error: 0 });
+  const [ticketsState, setTicketState] = useState<TicketStates>({
+    created: 0,
+    edited: 0,
+    omited: 0,
+    error: 0,
+    projectId: 0
+  });
 
   // Ref para el intervalo del polling del resumen
   const ticketsPollingIntervalRef = useRef<NodeJS.Timer | null>(null);
@@ -60,6 +61,29 @@ export default function App() {
     };
   }, []);
 
+  /*
+  [
+  { key: 'scarlet-execution-${executionId}', value: { created: 10, edited: 5, omited: 2, error: 1, projectId: 10002} },
+  { key: 'scarlet-execution-${executionId}', value: { created: 20, edited: 7, omited: 3, error: 0, projectId: 10002 } }
+  ]
+  OTRO
+   [
+  { key: 'scarlet-operation-${operationId}', value: "omited" },
+  { key: 'scarlet-operation-${operationId}', value: "created" },
+  { key: 'scarlet-operation-${operationId}', value: "error" },
+  { key: 'scarlet-operation-${operationId}', value: "edited" }
+  ]
+  */
+
+  useEffect(()=> {
+   const getTicketsState = async () => {
+    const summary = await _persisteStatesOnStorage(executionId, ticketsState);
+    return summary;
+   }
+   getTicketsState();
+  }, [ticketsState])
+
+
   const ticketsResult = () => {
     if (ticketsPollingIntervalRef.current) return;
     ticketsPollingIntervalRef.current = setInterval(async () => {
@@ -68,7 +92,7 @@ export default function App() {
         setTicketState(summary);
 
         const totalProcessed =
-          summary.creado + summary.editado + summary.omitido + summary.error;
+          summary.created + summary.edited + summary.omited + summary.error;
         const totalExpected = 6;
 
         setMessage({ message: "Verificando acciones...", appereance: "information" });
@@ -123,14 +147,14 @@ export default function App() {
     setMessage(null);
 
     try {
-      const { operationId } = await _invokeCsvOperations(
+      const { executionId } = await _invokeCsvOperations(
         objectKey,
         context!.extension.project.id
       );
-      setOperationId('test-operation');
+      setExecutionId('test-operation');
+      ticketsResult();
       setMessage({message: 'Operaciones iniciadas con éxito', appereance: "information"});
       setIsProcessing(Status.inprogress);
-      ticketsResult();
     } catch (err) {
       console.error('Error al iniciar operaciones:', err);
       setMessage({message: `Error al iniciar operaciones: ${err}`, appereance: "error"});
@@ -199,7 +223,7 @@ export default function App() {
         )}
       </Form>
 
-      {isProcessing !== Status.init && operationId && (
+      {isProcessing !== Status.init && executionId && (
         <DynamicTableStateless
           isLoading={isProcessing === Status.inprogress}
           head={{
@@ -217,19 +241,19 @@ export default function App() {
                 {
                     key: 'creado',
                     content: (
-                        ticketsState.creado
+                        ticketsState.created
                     ),
                   },
                   {
                     key: 'editado',
                     content: (
-                        ticketsState.editado
+                        ticketsState.edited
                     ),
                   },
                   {
                     key: 'omitido',
                     content: (
-                        ticketsState.omitido
+                        ticketsState.omited
                     ),
                   },
                   {
@@ -250,20 +274,21 @@ export default function App() {
 async function _invokeCsvOperations(
   s3Key: string,
   projectId: string
-): Promise<{ operationId: string }> {
+): Promise<{ executionId: string }> {
   return await invoke('issue-operations-from-csv', {
     s3Key,
     projectId,
   });
 }
+async function _persisteStatesOnStorage(
+  executionId: string,
+  states: TicketStates
+){
+  await invoke('persist-status-storage', { executionId, ticketStates: states });
+}
 
 async function _getTicketsResult(
   operationId: string
-): Promise<{
-  creado: number;
-  editado: number;
-  omitido: number;
-  error: number;
-}> {
-  return await invoke('get-tickets-summary', { operationId: 'test-operation' });
+): Promise<TicketStates> {
+  return await invoke('get-tickets-states');
 }

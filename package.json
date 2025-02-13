@@ -15,7 +15,10 @@
     "start": "NODE_NO_WARNINGS=1 ts-node src/index.ts",
     "deploy:sam": "cd apps/remote-app && chmod +x scripts/deploy.sh && ./scripts/deploy.sh",
     "deploy:forge": "cd apps/forge-app && forge deploy",
-    "build:all": "turbo run build && bun run deploy:sam"
+    "tunnel": "cd apps/forge-app && forge tunnel",
+    "build:all": "turbo run build && bun run deploy:sam",
+    "build:web": "turbo run build --filter=web",
+    "build:manifest": "turbo run build --filter=manifest"
   },
   "devDependencies": {
     "@forge/api": "^4.1.2",
