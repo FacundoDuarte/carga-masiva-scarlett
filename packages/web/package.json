@@ -9,7 +9,7 @@
     "@atlaskit/form": "^11.0.2",
     "@atlaskit/textfield": "^6.7.2",
     "@emotion/css": "^11.13.5",
-    "@forge/api": "^2.22.1",
+    "@forge/api": "^5.0.0",
     "@forge/bridge": "4.2.0",
     "@forge/react": "^10.10.1",
     "@vitejs/plugin-react": "^4.3.4",

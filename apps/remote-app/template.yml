@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: |
   Proyecto SAM con AWS Step Functions y Lambdas en Node.js 20.x con TypeScript
@@ -20,6 +20,13 @@ Resources:
       CodeUri: src/validate-session/
       Policies:
         - AWSLambdaBasicExecutionRole
+      Events:
+        ApiPOSTexecution:
+          Type: Api
+          Properties:
+            Path: /execution
+            Method: POST
+            RestApiId: !Ref Api
   OperationsQueue:
     Type: AWS::SQS::Queue
     UpdateReplacePolicy: Delete
@@ -32,13 +39,13 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       QueueName: scarlet-executions-queue
-  # UploadedFilesBucket:
-  #   Type: AWS::S3::Bucket
-  #   Properties:
-  #        Bucket: scarlet-files-bucket
-        #  PolicyDocument:
-  
-  # Función Lambda para el mapeo (scarlet mapping)
+      # UploadedFilesBucket:
+      #   Type: AWS::S3::Bucket
+      #   Properties:
+      #        Bucket: scarlet-files-bucket
+      #  PolicyDocument:
+
+      # Función Lambda para el mapeo (scarlet mapping)
   ScarletMappingFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -69,6 +76,13 @@ Resources:
       CodeUri: src/save-storage/
       Policies:
         - AWSLambdaBasicExecutionRole
+      Events:
+        ApiGETexecutionid:
+          Type: Api
+          Properties:
+            Path: /execution/{id}
+            Method: GET
+            RestApiId: !Ref Api
   ExecutionPipe:
     Type: AWS::Pipes::Pipe
     DependsOn: []
@@ -76,8 +90,7 @@ Resources:
       RoleArn: !GetAtt StateMachineExecutionRole.Arn
       Name: scarlet-execution-pipe
       DesiredState: RUNNING
-      Source:
-        !GetAtt ExecutionQueue.Arn
+      Source: !GetAtt ExecutionQueue.Arn
         # Fn::Sub: >-
         #   arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:scheme-execution-queue
       SourceParameters:
@@ -107,7 +120,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
@@ -119,7 +132,7 @@ Resources:
       Policies:
         - PolicyName: StepFunctionsExecutionPolicy
           PolicyDocument:
-            Version: "2012-10-17"
+            Version: '2012-10-17'
             Statement:
               - Effect: Allow
                 Action:
@@ -129,14 +142,167 @@ Resources:
                   - sqs:DeleteMessage
                   - sqs:GetQueueAttributes
                   - states:StartExecution
-                Resource: "*"
+                Resource: '*'
   ValidateSessionFunctionUrl:
     Type: AWS::Lambda::Url
     Properties:
       TargetFunctionArn: !GetAtt ValidateSessionFunction.Arn
       AuthType: AWS_IAM
+  GetUploadUrl:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: !Sub
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: GetUploadUrl
+      CodeUri: src/get-upload-url
+      Handler: index.handler
+      Runtime: nodejs20.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Events:
+        ApiGETgetuploadurl:
+          Type: Api
+          Properties:
+            Path: /get-upload-url
+            Method: GET
+            RestApiId: !Ref Api
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - index.mts
+        External:
+          - '@aws-sdk/*'
+          - aws-sdk
+        Format: esm
+        Target: "node20"
+        Minify: true
+  GetUploadUrlLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${GetUploadUrl}
+  DownloadTemplate:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: !Sub
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: DownloadTemplate
+      CodeUri: src/download-template
+      Handler: index.handler
+      Runtime: nodejs20.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Events:
+        ApiGETdownloadtemplate:
+          Type: Api
+          Properties:
+            Path: /download-template
+            Method: GET
+            RestApiId: !Ref Api
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - index.mts
+        External:
+          - '@aws-sdk/*'
+          - aws-sdk
+        Minify: true
+  DownloadTemplateLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${DownloadTemplate}
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub
+        - ${ResourceName} From Stack ${AWS::StackName}
+        - ResourceName: Api
+      StageName: Prod
+      DefinitionBody:
+        openapi: '3.0'
+        info: {}
+        paths:
+          /download-template:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DownloadTemplate.Arn}/invocations
+              responses: {}
+              cors: true
+          /get-upload-url:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetUploadUrl.Arn}/invocations
+              responses: {}
+              cors: true
+          /execution/{id}:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SaveStorage.Arn}/invocations
+              responses: {}
+              cors: true
+          /execution:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ValidateSessionFunction.Arn}/invocations
+              responses: {}
+              cors: true
+      EndpointConfiguration: REGIONAL
+      TracingEnabled: true
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With,DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Origin,Accept,Referer'"
+        AllowOrigin: "'https://*.atlassian-dev.net,https://*.atl-paas.net,https://*.atlassian.net'"
+        MaxAge: 1000
+        AllowCredentials: true
+  ScarletStorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-storage-${AWS::AccountId}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: alias/aws/s3
+      PublicAccessBlockConfiguration:
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  BucketBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ScarletStorageBucket
+      PolicyDocument:
+        Id: RequireEncryptionInTransit
+        Version: '2012-10-17'
+        Statement:
+          - Principal: '*'
+            Action: '*'
+            Effect: Deny
+            Resource:
+              - !GetAtt ScarletStorageBucket.Arn
+              - !Sub ${ScarletStorageBucket.Arn}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
 
 Outputs:
   ExecutionTriggerUrl:
     Description: Scarlet Execution Trigger Url
     Value: !GetAtt ValidateSessionFunctionUrl.FunctionUrl
+  ApiUrl:
+    Description: Scarlet Api Remote Url
+    Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod

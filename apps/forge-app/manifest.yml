@@ -9,11 +9,17 @@ modules:
     - key: scarlet-operations-project-page
       resource: main
       resolver:
-        function: resolver
-      title: Scarlett Bulk Import
+        endpoint: execution-remote-endpoint
+      title: Scarlet Bulk Import
   function:
     - key: resolver
       handler: index.handler
+  endpoint:
+    - key: execution-remote-endpoint
+      remote: execution-remote
+      auth:
+        appSystemToken:
+          enabled: true
 resources:
   - key: main
     path: ../../packages/web/dist
@@ -22,17 +28,21 @@ permissions:
     - read:jira-work
     - write:jira-work
     - storage:app
+    - read:app-system-token
   content:
     styles:
       - "unsafe-inline"
   external:
     fetch:
+      backend:
+        - https://fv5cdmws7h.execute-api.us-east-1.amazonaws.com/Prod
+        - atl-paas.net
       client:
         - remote: iss-rem-bucket
         - remote: execution-remote
-        - https://issue-reminder-app-dev-issrem-529202746267.s3.us-east-1.amazonaws.com
+        - https://fv5cdmws7h.execute-api.us-east-1.amazonaws.com/Prod
         - issue-reminder-app-dev-issrem-529202746267.s3.amazonaws.com
-        - https://jjskm5iequrcv22uv2gikozare0yntuj.lambda-url.us-east-1.on.aws/
+        - atl-paas.net
 remotes:
   - key: iss-rem-bucket
     baseUrl: https://issue-reminder-app-dev-issrem-529202746267.s3.us-east-1.amazonaws.com
@@ -40,7 +50,7 @@ remotes:
       - compute
       - fetch
   - key: execution-remote
-    baseUrl: https://jjskm5iequrcv22uv2gikozare0yntuj.lambda-url.us-east-1.on.aws/
+    baseUrl: https://fv5cdmws7h.execute-api.us-east-1.amazonaws.com/Prod
     operations:
       - compute
       - fetch
