@@ -64,13 +64,13 @@
 							"FunctionName": "${ScarletMappingFunction}",
 							"Payload.$": "$"
 						},
-						"Next": "SendDelayedOrder"
+						"Next": "Operations Queue"
 					},
-					"SendDelayedOrder": {
+					"Operations Queue": {
 						"Type": "Task",
 						"Resource": "arn:aws:states:::sqs:sendMessage",
 						"Parameters": {
-							"QueueUrl": "${OperationsQueue}",
+							"QueueUrl": "${OperationQueue}",
 							"MessageBody.$": "$"
 						},
 						"End": true

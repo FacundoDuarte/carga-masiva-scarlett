@@ -6,7 +6,7 @@ modules:
         function: resolver
         method: operations-queue-listener
   jira:projectPage:
-    - key: creacion-masiva-scarlett-ui-kit-hello-world-project-page
+    - key: scarlet-operations-project-page
       resource: main
       resolver:
         function: resolver
@@ -16,7 +16,7 @@ modules:
       handler: index.handler
 resources:
   - key: main
-    path: static/frontend/build
+    path: ../../packages/web/dist
 permissions:
   scopes:
     - read:jira-work
@@ -29,22 +29,22 @@ permissions:
     fetch:
       client:
         - remote: iss-rem-bucket
+        - remote: execution-remote
         - https://issue-reminder-app-dev-issrem-529202746267.s3.us-east-1.amazonaws.com
         - issue-reminder-app-dev-issrem-529202746267.s3.amazonaws.com
-        - https://x5itqtdokwv57lksxcoyomdzh40frooo.lambda-url.us-east-1.on.aws/
+        - https://jjskm5iequrcv22uv2gikozare0yntuj.lambda-url.us-east-1.on.aws/
 remotes:
   - key: iss-rem-bucket
     baseUrl: https://issue-reminder-app-dev-issrem-529202746267.s3.us-east-1.amazonaws.com
     operations:
       - compute
       - fetch
-      # A este remoto se le debe enviar el fileId, token & más.
-  - key: execution-trggier-remote
-    baseUrl: https://x5itqtdokwv57lksxcoyomdzh40frooo.lambda-url.us-east-1.on.aws/
+  - key: execution-remote
+    baseUrl: https://jjskm5iequrcv22uv2gikozare0yntuj.lambda-url.us-east-1.on.aws/
     operations:
       - compute
       - fetch
 app:
   runtime:
     name: nodejs20.x
-  id: ari:cloud:ecosystem::app/{{APP-ID}}
+  id: ari:cloud:ecosystem::app/e288d60c-ca8d-4d94-8a0a-6730f3786ab3

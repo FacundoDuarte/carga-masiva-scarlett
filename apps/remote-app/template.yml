@@ -32,6 +32,12 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       QueueName: scarlet-executions-queue
+  # UploadedFilesBucket:
+  #   Type: AWS::S3::Bucket
+  #   Properties:
+  #        Bucket: scarlet-files-bucket
+        #  PolicyDocument:
+  
   # Función Lambda para el mapeo (scarlet mapping)
   ScarletMappingFunction:
     Type: AWS::Serverless::Function
@@ -91,9 +97,10 @@ Resources:
         GetExistingIssuesFunction: !GetAtt GetExistingIssuesFunction.Arn
         SaveStorage: !GetAtt SaveStorage.Arn
         OperationsQueue: !GetAtt OperationsQueue.Arn
+        AddOrderFunction: !Ref AWS::NoValue
       Role: !GetAtt StateMachineExecutionRole.Arn
-      DefinitionUri: statemachine.json
       Name: scarlet-execution-machine
+      DefinitionUri: statemachine.json
 
   # Rol de ejecución para la máquina de estado
   StateMachineExecutionRole:
@@ -131,5 +138,5 @@ Resources:
 
 Outputs:
   ExecutionTriggerUrl:
-    Description: "Scarlet Execution Trigger Url"
+    Description: Scarlet Execution Trigger Url
     Value: !GetAtt ValidateSessionFunctionUrl.FunctionUrl

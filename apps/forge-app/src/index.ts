@@ -14,7 +14,7 @@ import {
   RequestPayload,
 } from '@utils/types';
 import {getExistingIssues, requestTicketsJira} from 'utils/functions';
-import {CF, CsvRow, CsvRowHeaders, scarlettMapping} from '@utils/custom_fields';
+import {CF, CsvRow, CsvRowHeaders, scarlettMapping} from 'utils/custom_fields';
 import {storage} from '@forge/api';
 import {S3Client, GetObjectCommand, PutObjectCommand} from '@aws-sdk/client-s3';
 import {getSignedUrl} from '@aws-sdk/s3-request-presigner';

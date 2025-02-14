@@ -14,14 +14,16 @@
     "@forge/react": "^10.10.1",
     "@vitejs/plugin-react": "^4.3.4",
     "papaparse": "^5.5.2",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "utils": "*"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "utils": "*",
+    "vite-plugin-eslint": "^1.8.1",
+    "vite-plugin-stylelint": "^6.0.0"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "dev": "vite",
     "build": "vite build",
-    "eject": "react-scripts eject"
+    "preview": "vite preview"
   },
   "browserslist": {
     "production": [
@@ -36,6 +38,12 @@
     ]
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "@typescript-eslint/parser": "^5.0.0",
+    "eslint": "^8.0.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-unused-imports": "^2.0.0",
     "react-scripts": "^5.0.1",
     "typescript": "^5.7.3"
   }

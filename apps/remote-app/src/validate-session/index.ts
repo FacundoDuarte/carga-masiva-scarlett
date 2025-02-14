@@ -5,6 +5,8 @@ import {validateContextToken} from '@utils/functions';
 export const handler: Handler = async (event, _context) => {
   // Aquí implementa la lógica real para validar la sesión.
   // Por ejemplo, podrías verificar un token o consultar un servicio externo.
+  console.log(`EVENT: ${event}`);
+  console.log(`CONTEXT: ${_context}`);
 
   //Acá deberíamos obtener el AppId
   const {

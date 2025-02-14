@@ -2,9 +2,12 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "module": "ES6",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
     "rootDir": "src",
+    "jsx": "react",
     "outDir": "dist",
+    "skipLibCheck": true,
     "composite": true,
     "paths": {
       "@utils": ["utils"]

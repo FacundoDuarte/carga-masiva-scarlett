@@ -31,9 +31,16 @@ permissions:
         - remote: iss-rem-bucket
         - https://issue-reminder-app-dev-issrem-529202746267.s3.us-east-1.amazonaws.com
         - issue-reminder-app-dev-issrem-529202746267.s3.amazonaws.com
+        - https://x5itqtdokwv57lksxcoyomdzh40frooo.lambda-url.us-east-1.on.aws/
 remotes:
   - key: iss-rem-bucket
     baseUrl: https://issue-reminder-app-dev-issrem-529202746267.s3.us-east-1.amazonaws.com
+    operations:
+      - compute
+      - fetch
+      # A este remoto se le debe enviar el fileId, token & más.
+  - key: execution-trggier-remote
+    baseUrl: https://x5itqtdokwv57lksxcoyomdzh40frooo.lambda-url.us-east-1.on.aws/
     operations:
       - compute
       - fetch

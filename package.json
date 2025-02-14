@@ -16,7 +16,6 @@
     "deploy:sam": "cd apps/remote-app && chmod +x scripts/deploy.sh && ./scripts/deploy.sh",
     "deploy:forge": "cd apps/forge-app && forge deploy",
     "tunnel": "cd apps/forge-app && forge tunnel",
-    "build:all": "turbo run build && bun run deploy:sam",
     "build:web": "turbo run build --filter=web",
     "build:manifest": "turbo run build --filter=manifest"
   },
@@ -38,6 +37,8 @@
     "@forge/resolver": "^1.6.3",
     "bun": "^1.2.1",
     "papaparse": "^5.5.2",
+    "prettier": "^3.5.1",
+    "prettier-plugin-sh": "^0.14.0",
     "vite": "^6.1.0"
   }
 }

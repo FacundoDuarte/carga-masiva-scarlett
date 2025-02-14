@@ -16,7 +16,7 @@ modules:
       handler: index.handler
 resources:
   - key: main
-    path: static/frontend/build
+    path: ../../packages/web/dist
 permissions:
   scopes:
     - read:jira-work
@@ -29,6 +29,7 @@ permissions:
     fetch:
       client:
         - remote: iss-rem-bucket
+        - remote: execution-remote
         - https://issue-reminder-app-dev-issrem-529202746267.s3.{{AWS-REGION}}.amazonaws.com
         - issue-reminder-app-dev-issrem-529202746267.s3.amazonaws.com
         - {{EXECUTION_TRIGGER_URL}}
@@ -38,7 +39,7 @@ remotes:
     operations:
       - compute
       - fetch
-  - key: execution-trigger-remote
+  - key: execution-remote
     baseUrl: {{EXECUTION_TRIGGER_URL}}
     operations:
       - compute
