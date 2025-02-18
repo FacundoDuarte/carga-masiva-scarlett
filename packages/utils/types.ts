@@ -50,7 +50,10 @@ export type Invoice = {
     scarlettId: string;
     method: string;
     key?: string;
-    status?: { name: string; statusCategory: { key: string; name: string } };
+    status?: {
+      name: string;
+      transitionId: string;
+  };
 };
 
 export type Issue = {
@@ -61,7 +64,7 @@ export type Issue = {
         issuetype: { id: number };
         status?: {
             name: string;
-            statusCategory: { key: string; name: string };
+            transitionId: string;
         };
     } & CustomField;
 };

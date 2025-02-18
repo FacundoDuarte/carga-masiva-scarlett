@@ -1,5 +1,5 @@
 import {parse, format} from 'date-fns';
-
+import { Invoice } from 'utils/types';
 export const enum CF {
   summary = 'summary',
   status = 'status',
@@ -62,27 +62,28 @@ export type CsvRow = Record<CsvRowHeaders, string> & {
   estadoEnJira: string;
   subEstadoEnJira: string;
 };
+
 export const scarlettMapping: Mapping = {
-  [CF.scarlett_id]: (row: CsvRow) => [row[CsvRowHeaders.uuid]],
-  [CF.pais]: (row: CsvRow) => ({value: row[CsvRowHeaders.pais]}),
-  [CF.tipo_documento]: (row: CsvRow) => row[CsvRowHeaders.documentType],
-  [CF.estado_validaciones]: (row: CsvRow) => row[CsvRowHeaders.estadoDeValidaciones],
-  [CF.proveedor_id]: (row: CsvRow) => row[CsvRowHeaders.proveedorId],
-  [CF.fecha_recepcion]: (row: CsvRow) => parseAndFormatDate(row[CsvRowHeaders.fechaDeRecepcion]),
-  [CF.asignacion_sap_sku]: (row: CsvRow) => row[CsvRowHeaders.asignacionSapSku],
-  [CF.estado_conciliacion]: (row: CsvRow) => row[CsvRowHeaders.estadoDeConciliacion],
-  [CF.estado_solicitudes]: (row: CsvRow) => row[CsvRowHeaders.estadoDeLasSolicitudes],
-  [CF.orden_de_compra]: (row: CsvRow) => row[CsvRowHeaders.ordenDeCompra],
-  [CF.fecha_emision]: (row: CsvRow) => parseAndFormatDate(row[CsvRowHeaders.fechaDeEmision]),
-  [CF.is]: (row: CsvRow) => row[CsvRowHeaders.numeroDeEnvio],
-  [CF.estado_de_envio]: (row: CsvRow) => row[CsvRowHeaders.estadoDeEnvio],
-  [CF.monto]: (row: CsvRow) => parseInt(row[CsvRowHeaders.monto]),
-  [CF.uuid]: (row: CsvRow) => [row[CsvRowHeaders.uuid]],
-  [CF.estado_integracion_sap_final]: (row: CsvRow) => row[CsvRowHeaders.estadoIntegracionSapFinal],
+  [CF.scarlett_id]: (invoice: Partial<Invoice>) => [invoice.uuid || ''],
+  [CF.pais]: (invoice: Partial<Invoice>) => ({ value: invoice.pais || '' }),
+  [CF.tipo_documento]: (invoice: Partial<Invoice>) => invoice.tipo_documento || '',
+  [CF.estado_validaciones]: (invoice: Partial<Invoice>) => invoice.estado_validaciones || '',
+  [CF.proveedor_id]: (invoice: Partial<Invoice>) => invoice.proveedor_id || '',
+  [CF.fecha_recepcion]: (invoice: Partial<Invoice>) => parseAndFormatDate(invoice.fecha_recepcion || ''),
+  [CF.asignacion_sap_sku]: (invoice: Partial<Invoice>) => invoice.asignacion_sap_sku || '',
+  [CF.estado_conciliacion]: (invoice: Partial<Invoice>) => invoice.estado_conciliacion || '',
+  [CF.estado_solicitudes]: (invoice: Partial<Invoice>) => invoice.estado_solicitudes || '',
+  [CF.orden_de_compra]: (invoice: Partial<Invoice>) => invoice.orden_de_compra || '',
+  [CF.fecha_emision]: (invoice: Partial<Invoice>) => parseAndFormatDate(invoice.fecha_emision || ''),
+  [CF.is]: (invoice: Partial<Invoice>) => invoice.is || '',
+  [CF.estado_de_envio]: (invoice: Partial<Invoice>) => invoice.estado_de_envio || '',
+  [CF.monto]: (invoice: Partial<Invoice>) => parseInt(invoice.monto || '0'),
+  [CF.uuid]: (invoice: Partial<Invoice>) => [invoice.uuid || ''],
+  [CF.estado_integracion_sap_final]: (invoice: Partial<Invoice>) => invoice.estado_integracion_sap_final || '',
 };
 
 export type Mapping = {
-  [x in CF]?: (row: CsvRow) => string | string[] | number | {id: number} | {value: string};
+  [x in CF]?: (invoice: Partial<Invoice>) => string | string[] | number | { id: number } | { value: string };
 };
 
 /**

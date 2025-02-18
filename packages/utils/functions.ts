@@ -14,7 +14,7 @@ const validateIssueKey = (method: string, issueKey?: string) => {
 const _isEdit = (method: string) => method == 'PUT';
 
 export const requestTicketsJira = async (payload: Partial<Invoice>) => {
-  const {method, key: issueKey} = payload;
+  const {method, key: issueKey, status} = payload;
   if (!method) return;
 
   const jiraRoute = _isEdit(method)
@@ -28,16 +28,20 @@ export const requestTicketsJira = async (payload: Partial<Invoice>) => {
     method: method,
     body: JSON.stringify(payload),
   });
+
   if (!response.ok) {
     throw new Error(
       `Error al ${method === 'POST' ? 'crear' : 'editar'} issue: ` +
         `${response.status} - ${await response.text()}`,
     );
   }
+  
   if (response.status !== 204) {
     const data = await response.json();
+    await transitionIssue(payload);
     return data;
   }
+
   return;
 };
 
@@ -91,4 +95,31 @@ export async function fetchFromJira({token, apiBaseUrl, path, method, body}: Fet
     Authorization: `Bearer ${token}`,
   };
   return await fetch(`${apiBaseUrl}/rest/api${path}`, {headers, method, body});
+}
+
+export async function transitionIssue(payload: Partial<Invoice>){
+  const {status, key: issueKey} = payload;
+  // Si el estado que recibimos en el CSV es diferente al estado actual del ticket, entonces lo transicionamos al estado que
+  // recibimos del CSV
+  const issue = await getExistingIssues(`key = ${issueKey}`, ["status"]);
+  const actualStatus = issue[0].fields.status.name;
+
+  if(status.name != actualStatus){
+    
+  const bodyData = {
+    transition: {
+      id: status.transitionId
+    },
+  };
+
+  const response = await fetchFromJira({
+    token: 'token',
+    apiBaseUrl: 'appBaseUrl',
+    path: `/rest/api/3/issue/${issueKey}/transitions`,
+    method: "POST",
+    body: JSON.stringify(bodyData),
+  });
+}
+ 
+
 }

@@ -1,12 +1,21 @@
-import {Handler} from 'aws-lambda';
+import { scarlettMapping } from 'utils/custom_fields';
+import { Invoice, Issue } from 'utils/types';
 
-export const handler: Handler = async (event, _context) => {
-  // Procesa la información del CSV (o de la orden) contenida en event.
-  // Aquí determinas, por ejemplo, si la orden está retrasada o no.
-  console.log(JSON.stringify(event));
-  const response = {
-    orderData: event, // Procesa y estructura los datos según necesites.
-    delayed: false, // Cambia a true si la orden está retrasada.
+export default function post(event): Response {
+  const partialInvoice: Partial<Invoice> = event;
+
+  const issue: Issue = {
+    key: partialInvoice.key,
+    fields: {
+      project: { id: partialInvoice.project?.id ?? 0 },
+      summary: partialInvoice.summary,
+      issuetype: { id: 11871 }, 
+    }
   };
-  return response;
+
+  for (const [cfField, mapFunction] of Object.entries(scarlettMapping)) {
+    (issue.fields as any)[cfField] = mapFunction(partialInvoice);
+  }
+
+  return new Response(JSON.stringify(issue));
 };
