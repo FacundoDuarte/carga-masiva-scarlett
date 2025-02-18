@@ -42,7 +42,7 @@ export const enum CsvRowHeaders {
   estadoEnJira = 'Estado en Jira',
   subEstadoEnJira = 'Sub - Estado en Jira',
 }
-export type CsvRow = {
+export type CsvRow = Record<CsvRowHeaders, string> & {
   pais: string;
   uuid: string;
   documentType: string;

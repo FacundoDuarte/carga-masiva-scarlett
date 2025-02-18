@@ -3,7 +3,7 @@ import Form, { Field, ErrorMessage } from '@atlaskit/form';
 import TextField from '@atlaskit/textfield';
 import { ButtonGroup } from '@atlaskit/button';
 import Button from '@atlaskit/button/new';
-import { view, router, invokeRemote } from '@forge/bridge';
+import { view, invokeRemote } from '@forge/bridge';
 import { FullContext } from '@forge/bridge/out/types';
 import SectionMessage, { Appearance } from '@atlaskit/section-message';
 import { DynamicTableStateless } from '@atlaskit/dynamic-table';
@@ -103,7 +103,7 @@ export default function App() {
         });
 
         if (totalProcessed === totalExpected) {
-          clearInterval(ticketsPollingIntervalRef.current!);
+          clearInterval(ticketsPollingIntervalRef?.current);
           ticketsPollingIntervalRef.current = null;
           setMessage({
             message: 'Acciones completadas',
@@ -121,30 +121,30 @@ export default function App() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     try {
-      // const { signedUrl: uploadUrl, s3Key } = await invoke<{
-      //   signedUrl: string;
-      //   s3Key: string;
-      // }>('get-upload-url', { fileName: file.name });
-      const { signedUrl, s3: s3Key } = await invokeRemote<{
-        signedUrl: string;
-        s3: string;
+      setIsProcessing(Status.inprogress);
+      if (!file) {
+        setMessage({
+          message: 'No se ha seleccionado ningun archivo',
+          appereance: 'error',
+        });
+        return;
+      }
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const { fileId } = await invokeRemote<{
+        fileId: string;
       }>({
-        method: 'GET',
+        method: 'POST',
         path: '/get-upload-url',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
       });
       // const { signedUrl: signedUrl, s3: s3Key } = uploadUrlPayload;
-      setObjectKey(s3Key);
-      console.log(`uploadUrl: ${signedUrl}`);
-
-      const res = await fetch(signedUrl, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'text/csv',
-        },
-      });
-      console.log(await res.text());
+      setObjectKey(fileId);
+      console.log(`fileId: ${fileId}`);
       setMessage(null);
     } catch (err) {
       console.error(err);
@@ -165,7 +165,7 @@ export default function App() {
     try {
       const executionId = await _invokeCsvOperations(
         objectKey,
-        context!.extension.project.id,
+        context.extension.project.id,
       );
       setExecutionId(executionId);
       ticketsResult();
@@ -186,7 +186,7 @@ export default function App() {
   };
 
   // Función para descargar el template del CSV
-  async function _downloadTemplate(e: React.MouseEvent) {
+  async function _downloadTemplate() {
     //   const url: string = await invoke('download-template', {});
     //   console.log(`url: ${url}`);
     //   e.preventDefault();

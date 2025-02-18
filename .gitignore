@@ -3,3 +3,4 @@ bun.lock
 build/
 .turbo/
 .aws_sam/
+.build/

@@ -1,6 +1,62 @@
 #!/bin/bash
 
-# Desplegar con SAM
+# Función para mostrar ayuda
+show_help() {
+    echo "Uso: ./deploy.sh [opciones]"
+    echo "Opciones:"
+    echo "  --preview    Solo muestra los cambios que se aplicarán sin desplegar"
+    echo "  --help      Muestra esta ayuda"
+    exit 0
+}
+
+# Procesar argumentos
+PREVIEW_ONLY=false
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --preview)
+            PREVIEW_ONLY=true
+            shift
+            ;;
+        --help)
+            show_help
+            ;;
+        *)
+            echo "Opción desconocida: $1"
+            show_help
+            ;;
+    esac
+done
+
+echo "🏗️  Ejecutando build..."
+# Compilar TypeScript
+tsc
+
+# Crear el directorio de build si no existe
+mkdir -p .build
+
+# Empaquetar con esbuild
+echo "📦 Empaquetando con esbuild..."
+node -e 'import("esbuild").then(esbuild => esbuild.build({
+    entryPoints: ["src/**/*.ts"],
+    bundle: true,
+    outdir: ".build",
+    platform: "node",
+    target: "node18",
+    format: "esm",
+    external: ["aws-sdk"],
+})).catch(() => process.exit(1))'
+
+if [ "$PREVIEW_ONLY" = true ]; then
+    echo "🔍 Previsualizando cambios..."
+    sam deploy \
+        --template-file template.yml \
+        --config-file sam-config-dev.toml \
+        --capabilities CAPABILITY_IAM \
+        --no-execute-changeset
+    exit 0
+fi
+
+echo "🚀 Desplegando con SAM..."
 sam deploy \
   --template-file template.yml \
   --config-file sam-config-dev.toml \

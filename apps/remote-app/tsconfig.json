@@ -1,21 +1,39 @@
+// {
+//   "extends": "../../tsconfig.json",
+//   "compilerOptions": {
+//     "target": "ES2022",
+//     "module": "commonjs",
+//     "moduleResolution": "node",
+//     "noEmit": true,
+//     "strict": true,
+//     "isolatedModules": true,
+//     "skipLibCheck": true,
+//     "noImplicitAny": false,
+//     "sourceMap": false,
+//     "forceConsistentCasingInFileNames": true,
+//     "allowSyntheticDefaultImports": true,
+//     "esModuleInterop": true,
+//     "typeRoots": ["node_modules/@types", "./types"],
+//     "preserveConstEnums": true,
+//     "baseUrl": ".",
+//     "paths": {
+//       "utils/*": ["../../packages/utils/*"]
+//     }
+//   },
+//   "include": ["src/**/*.mts", "src/**/*.ts", "../../packages/utils/**/*.ts"],
+//   "exclude": ["node_modules"]
+// }
 {
-  "extends": "../../tsconfig.json",
+  "include": ["src/**/*.mts", "src/**/*.ts", "../../packages/utils/**/*.ts", "src/get-upload-url.ts"],
+  "exclude": ["node_modules"],
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ES2022",
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "target": "ESNext",
     "moduleResolution": "node",
-    "baseUrl": ".",
-    "skipLibCheck": true,
-    "noImplicitAny": false,
-    "forceConsistentCasingInFileNames": true,
-    "allowSyntheticDefaultImports": true,
-    "typeRoots": ["node_modules/@types", "./types"],
-    "preserveConstEnums": true,
-    "paths": {
-      "@utils/*": ["../../packages/utils/*"]
-    },
-    "esModuleInterop": true
-  },
-  "include": ["src/**/*.mts", "../../packages/utils/**/*.ts"],
-  "exclude": ["node_modules"]
+    "types": ["bun-types"],
+    "esModuleInterop": true,
+    "allowJs": true,
+    "strict": true
+  }
 }

@@ -1,15 +1,17 @@
 {
   "extends": "./tsconfig.ref.json",
   "compilerOptions": {
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
+    "module": "commonjs",
+    "target": "ES2022",
     "rootDir": ".",
     "paths": {
-      "@utils/*": ["packages/utils/*"],
-      "@utils": ["packages/utils/index.ts"],
-      "@src/*": ["apps/forge-app/src/*"]
+      "utils/*": ["./packages/utils/*"],
+      "utils": ["./packages/utils/index.ts"], 
+      "@src/*": ["./src/*"]
     }
   },
-  "include": ["apps/**/src/**/*", "packages/**/src/**/*"],
+  "include": ["src/**/*.mts", "src/**/*.ts"],
   "exclude": ["node_modules", "static/**/build", "dist"],
   "references": [
     {"path": "./packages/utils/tsconfig.json"},

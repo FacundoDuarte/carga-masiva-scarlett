@@ -1,25 +1,154 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: |
   Proyecto SAM con AWS Step Functions y Lambdas en Node.js 20.x con TypeScript
 Globals:
   Function:
-    Runtime: nodejs20.x
-    Timeout: 10
+    Runtime: provided.al2
+    Timeout: 30
     Architectures:
-      - x86_64
-
+      - arm64
+    Layers:
+      - arn:aws:lambda:us-east-1:529202746267:layer:bun:1
+  Api:
+    OpenApiVersion: 3.0.1
 Resources:
-  # Función Lambda para validar la sesión
+  ScarletExecutionQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub ${AWS::StackName}-execution-queue
+      VisibilityTimeout: 900 # 15 minutos para procesar mensajes
+      MessageRetentionPeriod: 1209600 # 14 días
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ScarletExecutionDLQ.Arn
+        maxReceiveCount: 3
+
+  ScarletExecutionDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub ${AWS::StackName}-execution-dlq
+      MessageRetentionPeriod: 1209600 # 14 días
+
+  ScarletStorageBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-scarlet-storage
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldFiles
+            Status: Enabled
+            ExpirationInDays: 30
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      EndpointConfiguration: REGIONAL
+      DefinitionBody:
+        openapi: 3.0.1
+        info:
+          title: Scarlett API
+          version: "1.0"
+        x-amazon-apigateway-binary-media-types:
+          - "multipart/form-data"
+        paths:
+          /validate-session:
+            post:
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ValidateSessionFunction.Arn}/invocations
+                passthroughBehavior: when_no_match
+                httpMethod: POST
+                type: aws_proxy
+              responses:
+                "200":
+                  description: Success
+              x-amazon-apigateway-cors:
+                allowOrigin: "'*'"
+                allowMethods:
+                  - POST
+                  - OPTIONS
+                allowHeaders:
+                  - Content-Type
+                  - Authorization
+                  - X-Amz-Date
+                  - X-Api-Key
+                  - X-Amz-Security-Token
+                maxAge: 300
+          /execution:
+            post:
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ValidateSessionFunction.Arn}/invocations
+                passthroughBehavior: when_no_match
+                httpMethod: POST
+                type: aws_proxy
+              responses:
+                "200":
+                  description: Success
+              x-amazon-apigateway-cors:
+                allowOrigin: "'*'"
+                allowMethods:
+                  - POST
+                  - OPTIONS
+                allowHeaders:
+                  - Content-Type
+                  - Authorization
+                  - X-Amz-Date
+                  - X-Api-Key
+                  - X-Amz-Security-Token
+                maxAge: 300
+          /get-upload-url:
+            post:
+              security: [] # This explicitly makes the endpoint public (no auth required)
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetUploadUrl.Arn}/invocations
+                passthroughBehavior: when_no_match
+                httpMethod: POST
+                type: aws_proxy
+              responses:
+                "200":
+                  description: Success
+              x-amazon-apigateway-cors:
+                allowOrigin: "'*'"
+                allowMethods:
+                  - POST
+                  - OPTIONS
+                allowHeaders:
+                  - Content-Type
+                  - Authorization
+                  - X-Amz-Date
+                  - X-Api-Key
+                  - X-Amz-Security-Token
+                maxAge: 300
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
   ValidateSessionFunction:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - validate-session.mts
+        Bundle: true
+        Minify: true
+        Format: esm
+        Platform: node
+        Target: esnext
+        External:
+          - "@aws-sdk/client-sqs"
+          - "@aws-sdk/*"
+          - aws-sdk
+          - "@forge/api"
     Properties:
-      Handler: index.handler
-      CodeUri: src/validate-session/
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref ScarletExecutionQueue
       Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt ScarletExecutionQueue.QueueName
         - AWSLambdaBasicExecutionRole
+      Handler: validate-session.handler
+      CodeUri: ./
       Events:
         ApiPOSTexecution:
           Type: Api
@@ -33,49 +162,97 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       QueueName: scarlet-operations-queue
-  ExecutionQueue:
-    Type: AWS::SQS::Queue
-    UpdateReplacePolicy: Delete
-    DeletionPolicy: Delete
-    Properties:
-      QueueName: scarlet-executions-queue
-      # UploadedFilesBucket:
-      #   Type: AWS::S3::Bucket
-      #   Properties:
-      #        Bucket: scarlet-files-bucket
-      #  PolicyDocument:
-
-      # Función Lambda para el mapeo (scarlet mapping)
+      MessageRetentionPeriod: 1209600 # 14 días en segundos
   ScarletMappingFunction:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - src/scarlet-mapping.mts
+        Bundle: true
+        Minify: true
+        Format: esm
+        Platform: node
+        Target: esnext
+        External:
+          - "@aws-sdk/*"
+          - aws-sdk
+          - "@forge/api"
+          - date-fns
+          - jose
+          - uuid
+          - bun
+        TreeShaking: true
+        Sourcemap: false
+
     Properties:
-      Handler: index.handler
-      CodeUri: src/scarlet-mapping/
+      Handler: scarlet-mapping.handler
+      CodeUri: ./
       Policies:
         - AWSLambdaBasicExecutionRole
-  # Función Lambda para el mapeo (scarlet mapping)
+        - S3CrudPolicy:
+            BucketName: !Ref ScarletStorageBucket
   GetExistingIssuesFunction:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - src/get-existing-issues.mts
+        Bundle: true
+        Minify: true
+        Format: esm
+        Platform: node
+        Target: esnext
+        External:
+          - "@aws-sdk/*"
+          - aws-sdk
+          - "@forge/api"
+          - date-fns
+          - jose
+          - uuid
+          - bun
+        TreeShaking: true
+        Sourcemap: false
+
     Properties:
-      Handler: index.handler
-      CodeUri: src/get-existing-issues/
+      Handler: get-existing-issues.handler
+      CodeUri: ./
       Policies:
         - AWSLambdaBasicExecutionRole
-
-  # Función Lambda para agregar la orden
+        - S3CrudPolicy:
+            BucketName: !Ref ScarletStorageBucket
   SaveStorage:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - src/save-storage.mts
+        Bundle: true
+        Minify: true
+        Format: esm
+        Platform: node
+        Target: esnext
+        External:
+          - "@aws-sdk/*"
+          - aws-sdk
+          - "@forge/api"
+          - date-fns
+          - jose
+          - uuid
+          - bun
+        TreeShaking: true
+        Sourcemap: false
+
     Properties:
-      Handler: index.handler
-      CodeUri: src/save-storage/
+      Handler: save-storage.handler
+      CodeUri: ./
       Policies:
         - AWSLambdaBasicExecutionRole
+        - S3CrudPolicy:
+            BucketName: !Ref ScarletStorageBucket
       Events:
         ApiGETexecutionid:
           Type: Api
@@ -90,9 +267,7 @@ Resources:
       RoleArn: !GetAtt StateMachineExecutionRole.Arn
       Name: scarlet-execution-pipe
       DesiredState: RUNNING
-      Source: !GetAtt ExecutionQueue.Arn
-        # Fn::Sub: >-
-        #   arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:scheme-execution-queue
+      Source: !GetAtt ScarletExecutionQueue.Arn
       SourceParameters:
         SqsQueueParameters:
           BatchSize: 1
@@ -120,7 +295,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -132,7 +307,7 @@ Resources:
       Policies:
         - PolicyName: StepFunctionsExecutionPolicy
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
@@ -142,7 +317,7 @@ Resources:
                   - sqs:DeleteMessage
                   - sqs:GetQueueAttributes
                   - states:StartExecution
-                Resource: '*'
+                Resource: "*"
   ValidateSessionFunctionUrl:
     Type: AWS::Lambda::Url
     Properties:
@@ -154,30 +329,46 @@ Resources:
       Description: !Sub
         - Stack ${AWS::StackName} Function ${ResourceName}
         - ResourceName: GetUploadUrl
-      CodeUri: src/get-upload-url
-      Handler: index.handler
-      Runtime: nodejs20.x
+      Handler: get-upload-url.post
+      CodeUri: ./src
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:GetObject
+              Resource: !Sub arn:aws:s3:::${AWS::StackName}-scarlet-storage/*
       Events:
-        ApiGETgetuploadurl:
+        ApiPOSTgetuploadurl:
           Type: Api
           Properties:
             Path: /get-upload-url
-            Method: GET
+            Method: POST
             RestApiId: !Ref Api
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - index.mts
-        External:
-          - '@aws-sdk/*'
-          - aws-sdk
-        Format: esm
-        Target: "node20"
+          - get-upload-url.ts
+        Bundle: true
         Minify: true
+        Format: esm
+        Platform: node
+        Target: esnext
+        External:
+          - "@aws-sdk/*"
+          - aws-sdk
+          - "@forge/api"
+          - date-fns
+          - jose
+          - uuid
+          - bun
+        TreeShaking: true
+        Sourcemap: false
   GetUploadUrlLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
@@ -190,8 +381,8 @@ Resources:
       Description: !Sub
         - Stack ${AWS::StackName} Function ${ResourceName}
         - ResourceName: DownloadTemplate
-      CodeUri: src/download-template
-      Handler: index.handler
+      Handler: download-template.handler
+      CodeUri: ./
       Runtime: nodejs20.x
       MemorySize: 3008
       Timeout: 30
@@ -207,102 +398,27 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - index.mts
-        External:
-          - '@aws-sdk/*'
-          - aws-sdk
+          - src/download-template.mts
+        Bundle: true
         Minify: true
-  DownloadTemplateLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${DownloadTemplate}
-  Api:
-    Type: AWS::Serverless::Api
-    Properties:
-      Name: !Sub
-        - ${ResourceName} From Stack ${AWS::StackName}
-        - ResourceName: Api
-      StageName: Prod
-      DefinitionBody:
-        openapi: '3.0'
-        info: {}
-        paths:
-          /download-template:
-            get:
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                type: aws_proxy
-                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DownloadTemplate.Arn}/invocations
-              responses: {}
-              cors: true
-          /get-upload-url:
-            get:
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                type: aws_proxy
-                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetUploadUrl.Arn}/invocations
-              responses: {}
-              cors: true
-          /execution/{id}:
-            get:
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                type: aws_proxy
-                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SaveStorage.Arn}/invocations
-              responses: {}
-              cors: true
-          /execution:
-            post:
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                type: aws_proxy
-                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ValidateSessionFunction.Arn}/invocations
-              responses: {}
-              cors: true
-      EndpointConfiguration: REGIONAL
-      TracingEnabled: true
-      Cors:
-        AllowMethods: "'GET,POST,OPTIONS'"
-        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With,DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Origin,Accept,Referer'"
-        AllowOrigin: "'https://*.atlassian-dev.net,https://*.atl-paas.net,https://*.atlassian.net'"
-        MaxAge: 1000
-        AllowCredentials: true
-  ScarletStorageBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub ${AWS::StackName}-storage-${AWS::AccountId}
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: aws:kms
-              KMSMasterKeyID: alias/aws/s3
-      PublicAccessBlockConfiguration:
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-  BucketBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref ScarletStorageBucket
-      PolicyDocument:
-        Id: RequireEncryptionInTransit
-        Version: '2012-10-17'
-        Statement:
-          - Principal: '*'
-            Action: '*'
-            Effect: Deny
-            Resource:
-              - !GetAtt ScarletStorageBucket.Arn
-              - !Sub ${ScarletStorageBucket.Arn}/*
-            Condition:
-              Bool:
-                aws:SecureTransport: 'false'
+        Format: esm
+        Platform: node
+        Target: esnext
+        External:
+          - "@aws-sdk/*"
+          - aws-sdk
+          - "@forge/api"
+          - date-fns
+          - jose
+          - uuid
+          - bun
+        TreeShaking: true
+        Sourcemap: false
 
 Outputs:
   ExecutionTriggerUrl:
     Description: Scarlet Execution Trigger Url
     Value: !GetAtt ValidateSessionFunctionUrl.FunctionUrl
   ApiUrl:
-    Description: Scarlet Api Remote Url
-    Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod
+    Description: API Gateway endpoint URL
+    Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod/

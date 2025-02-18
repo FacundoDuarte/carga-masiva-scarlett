@@ -35,12 +35,12 @@ permissions:
   external:
     fetch:
       backend:
-        - https://fv5cdmws7h.execute-api.us-east-1.amazonaws.com/Prod
+        - https://43jzosjoja.execute-api.us-east-1.amazonaws.com/Prod/
         - atl-paas.net
       client:
         - remote: iss-rem-bucket
         - remote: execution-remote
-        - https://fv5cdmws7h.execute-api.us-east-1.amazonaws.com/Prod
+        - https://43jzosjoja.execute-api.us-east-1.amazonaws.com/Prod/
         - issue-reminder-app-dev-issrem-529202746267.s3.amazonaws.com
         - atl-paas.net
 remotes:
@@ -50,7 +50,7 @@ remotes:
       - compute
       - fetch
   - key: execution-remote
-    baseUrl: https://fv5cdmws7h.execute-api.us-east-1.amazonaws.com/Prod
+    baseUrl: https://43jzosjoja.execute-api.us-east-1.amazonaws.com/Prod/
     operations:
       - compute
       - fetch
