@@ -4,6 +4,7 @@ import TextField from '@atlaskit/textfield';
 import { ButtonGroup } from '@atlaskit/button';
 import Button from '@atlaskit/button/new';
 import { view, invokeRemote } from '@forge/bridge';
+// import {  } from '@forge/api';
 import { FullContext } from '@forge/bridge/out/types';
 import SectionMessage, { Appearance } from '@atlaskit/section-message';
 import { DynamicTableStateless } from '@atlaskit/dynamic-table';
@@ -64,33 +65,19 @@ export default function App() {
     };
   }, []);
 
-  /*
-  [
-  { key: 'scarlet-execution-${executionId}', value: { created: 10, edited: 5, omited: 2, error: 1, projectId: 10002} },
-  { key: 'scarlet-execution-${executionId}', value: { created: 20, edited: 7, omited: 3, error: 0, projectId: 10002 } }
-  ]
-  OTRO
-   [
-  { key: 'scarlet-operation-${operationId}', value: "omited" },
-  { key: 'scarlet-operation-${operationId}', value: "created" },
-  { key: 'scarlet-operation-${operationId}', value: "error" },
-  { key: 'scarlet-operation-${operationId}', value: "edited" }
-  ]
-  */
-
-  // useEffect(() => {
-  //   const getTicketsState = async () => {
-  //     const summary = await _persisteStatesOnStorage(executionId, ticketsState);
-  //     return summary;
-  //   };
-  //   getTicketsState();
-  // }, [ticketsState]);
 
   const ticketsResult = () => {
     if (ticketsPollingIntervalRef.current) return;
     ticketsPollingIntervalRef.current = setInterval(async () => {
       try {
-        const summary = await _getTicketsResult('test-operation');
+        // const summary = await _getTicketsResult('test-operation');
+        const summary = {
+          created: 10,
+          edited: 5,
+          omited: 2,
+          error: 1,
+          projectId: 10002,
+        };
         setTicketState(summary);
 
         const totalProcessed =
@@ -129,22 +116,39 @@ export default function App() {
         });
         return;
       }
-      const formData = new FormData();
-      formData.append('file', file);
+      // First, convert the file to base64
+      const fileBase64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          // Get only the base64 data part, removing the data URL prefix
+          const base64 = reader.result as string;
+          resolve(base64.split(',')[1]);
+        };
+        reader.readAsDataURL(file);
+      });
 
-      const { fileId } = await invokeRemote<{
+      const uploadUrlPayload = await invokeRemote<{
         fileId: string;
+        key: string;
+        rowCount: number;
       }>({
         method: 'POST',
-        path: '/get-upload-url',
+        path: '/Prod/get-upload-url',
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/json',
         },
-        body: formData,
+        body: JSON.stringify({
+          fileName: file.name,
+          fileContent: fileBase64,
+          fileType: 'text/csv',
+          fileSize: file.size
+        }),
       });
-      // const { signedUrl: signedUrl, s3: s3Key } = uploadUrlPayload;
+      console.log('uploadUrlPayload: ', uploadUrlPayload);
+      const { fileId, key, rowCount } = uploadUrlPayload;
+      // const { fileId, key, rowCount } = await uploadUrlPayload.json();
       setObjectKey(fileId);
-      console.log(`fileId: ${fileId}`);
+      console.log(`fileId: ${fileId}, key: ${key}, rowCount: ${rowCount}`);
       setMessage(null);
     } catch (err) {
       console.error(err);
@@ -297,7 +301,7 @@ async function _invokeCsvOperations(
   s3Key: string,
   projectId: string,
 ): Promise<string> {
-  const { executionId } = await invokeRemote<{ executionId: string }>({
+  const res = await invokeRemote<{ executionId: string }>({
     path: '/execution',
     method: 'POST',
     body: JSON.stringify({
@@ -305,7 +309,7 @@ async function _invokeCsvOperations(
       fileId: s3Key,
     }),
   });
-  return executionId;
+  return res.executionId;
 }
 
 // async function _persisteStatesOnStorage(
@@ -315,11 +319,11 @@ async function _invokeCsvOperations(
 //   await invoke('persist-status-storage', { executionId, ticketStates: states });
 // }
 
-async function _getTicketsResult(operationId: string): Promise<TicketStates> {
-  // return await invoke('get-tickets-states');
-  const res = await invokeRemote<TicketStates>({
-    path: `/execution/${operationId}`,
-    method: 'GET',
-  });
-  return res;
-}
+// async function _getTicketsResult(operationId: string): Promise<TicketStates> {
+//   // return await invoke('get-tickets-states');
+//   const res = await invokeRemote<TicketStates>({
+//     path: `/execution/${operationId}`,
+//     method: 'GET',
+//   });
+//   return res;
+// }

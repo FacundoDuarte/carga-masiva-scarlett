@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: |
   Proyecto SAM con AWS Step Functions y Lambdas en Node.js 20.x con TypeScript
@@ -49,9 +49,9 @@ Resources:
         openapi: 3.0.1
         info:
           title: Scarlett API
-          version: "1.0"
+          version: '1.0'
         x-amazon-apigateway-binary-media-types:
-          - "multipart/form-data"
+          - multipart/form-data
         paths:
           /validate-session:
             post:
@@ -61,10 +61,10 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                "200":
+                '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: "'*'"
+                allowOrigin: '''*'''
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -83,10 +83,10 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                "200":
+                '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: "'*'"
+                allowOrigin: '''*'''
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -106,12 +106,35 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                "200":
+                '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: "'*'"
+                allowOrigin: '''*'''
                 allowMethods:
                   - POST
+                  - OPTIONS
+                allowHeaders:
+                  - Content-Type
+                  - Authorization
+                  - X-Amz-Date
+                  - X-Api-Key
+                  - X-Amz-Security-Token
+                maxAge: 300
+          /download-template:
+            get:
+              security: [] # This explicitly makes the endpoint public (no auth required)
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DownloadTemplate.Arn}/invocations
+                passthroughBehavior: when_no_match
+                httpMethod: GET
+                type: aws_proxy
+              responses:
+                '200':
+                  description: Success
+              x-amazon-apigateway-cors:
+                allowOrigin: '''*'''
+                allowMethods:
+                  - GET
                   - OPTIONS
                 allowHeaders:
                   - Content-Type
@@ -135,10 +158,10 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - "@aws-sdk/client-sqs"
-          - "@aws-sdk/*"
+          - '@aws-sdk/client-sqs'
+          - '@aws-sdk/*'
           - aws-sdk
-          - "@forge/api"
+          - '@forge/api'
     Properties:
       Environment:
         Variables:
@@ -176,9 +199,9 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - "@aws-sdk/*"
+          - '@aws-sdk/*'
           - aws-sdk
-          - "@forge/api"
+          - '@forge/api'
           - date-fns
           - jose
           - uuid
@@ -206,9 +229,9 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - "@aws-sdk/*"
+          - '@aws-sdk/*'
           - aws-sdk
-          - "@forge/api"
+          - '@forge/api'
           - date-fns
           - jose
           - uuid
@@ -236,9 +259,9 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - "@aws-sdk/*"
+          - '@aws-sdk/*'
           - aws-sdk
-          - "@forge/api"
+          - '@forge/api'
           - date-fns
           - jose
           - uuid
@@ -295,7 +318,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
@@ -307,7 +330,7 @@ Resources:
       Policies:
         - PolicyName: StepFunctionsExecutionPolicy
           PolicyDocument:
-            Version: "2012-10-17"
+            Version: '2012-10-17'
             Statement:
               - Effect: Allow
                 Action:
@@ -317,7 +340,7 @@ Resources:
                   - sqs:DeleteMessage
                   - sqs:GetQueueAttributes
                   - states:StartExecution
-                Resource: "*"
+                Resource: '*'
   ValidateSessionFunctionUrl:
     Type: AWS::Lambda::Url
     Properties:
@@ -360,9 +383,9 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - "@aws-sdk/*"
+          - '@aws-sdk/*'
           - aws-sdk
-          - "@forge/api"
+          - '@forge/api'
           - date-fns
           - jose
           - uuid
@@ -381,9 +404,8 @@ Resources:
       Description: !Sub
         - Stack ${AWS::StackName} Function ${ResourceName}
         - ResourceName: DownloadTemplate
-      Handler: download-template.handler
-      CodeUri: ./
-      Runtime: nodejs20.x
+      Handler: download-template.get
+      CodeUri: ./src
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
@@ -398,19 +420,13 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - src/download-template.mts
+          - download-template.ts
         Bundle: true
         Minify: true
         Format: esm
         Platform: node
         Target: esnext
         External:
-          - "@aws-sdk/*"
-          - aws-sdk
-          - "@forge/api"
-          - date-fns
-          - jose
-          - uuid
           - bun
         TreeShaking: true
         Sourcemap: false

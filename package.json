@@ -20,7 +20,9 @@
     "build:web": "turbo run build --filter=web",
     "build:manifest": "turbo run build --filter=manifest",
     "install:all": "bun install && turbo run install:deps",
-    "install:deps": "bun install"
+    "install:deps": "bun install",
+    "user:facu": "./change-user.sh --facu",
+    "user:facu:auto": ". ./change-user.sh --facu --auto"
   },
   "devDependencies": {
     "@forge/api": "^4.1.2",

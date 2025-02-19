@@ -1,10 +1,17 @@
-export const handler = async (event, _context) => {
-    // Procesa la información del CSV (o de la orden) contenida en event.
-    // Aquí determinas, por ejemplo, si la orden está retrasada o no.
-    console.log(JSON.stringify(event));
-    const response = {
-        orderData: event, // Procesa y estructura los datos según necesites.
-        delayed: false, // Cambia a true si la orden está retrasada.
+import { scarlettMapping } from 'utils/custom_fields';
+export default function post(event) {
+    const partialInvoice = event;
+    const issue = {
+        key: partialInvoice.key,
+        fields: {
+            project: { id: partialInvoice.project?.id ?? 0 },
+            summary: partialInvoice.summary,
+            issuetype: { id: 11871 },
+        }
     };
-    return response;
-};
+    for (const [cfField, mapFunction] of Object.entries(scarlettMapping)) {
+        issue.fields[cfField] = mapFunction(partialInvoice);
+    }
+    return new Response(JSON.stringify(issue));
+}
+;

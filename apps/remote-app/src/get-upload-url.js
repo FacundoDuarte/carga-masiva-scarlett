@@ -1,141 +1,43 @@
 import { v4 as uuidv4 } from 'uuid';
 import { S3Client } from 'bun';
-import Busboy from '@fastify/busboy';
-import * as XLSX from 'xlsx';
 export default async function post(request) {
+    // Handle CORS preflight request
+    if (request.method === 'OPTIONS') {
+        return new Response(null, {
+            status: 204,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Max-Age': '86400',
+            },
+        });
+    }
     try {
-        // Log request details
-        console.log('=== REQUEST DETAILS ===');
-        console.log('Headers:', Object.fromEntries(request.headers.entries()));
-        console.log('Method:', request.method);
         if (request.method !== 'POST') {
-            return new Response('Method not allowed', { status: 405 });
+            return new Response('Method not allowed', {
+                status: 405,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                },
+            });
         }
         const contentType = request.headers.get('content-type');
-        if (!contentType?.includes('multipart/form-data')) {
-            return new Response('Content-Type must be multipart/form-data', { status: 400 });
+        if (!contentType?.includes('application/json')) {
+            return new Response('Content-Type must be application/json', { status: 400 });
         }
-        // Función auxiliar para convertir XLSX a CSV
-        const convertXlsxToCsv = (buffer) => {
-            // Opciones de lectura optimizadas
-            const workbook = XLSX.read(buffer, {
-                type: 'buffer',
-                cellDates: false,
-                cellNF: false,
-                cellText: false,
-            });
-            const sheetName = 'Listado de Facturas_Master File';
-            if (!workbook.Sheets[sheetName]) {
-                throw new Error(`La hoja '${sheetName}' no existe en el archivo Excel`);
-            }
-            // Opciones de conversión optimizadas
-            const csvContent = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName], {
-                blankrows: false,
-                skipHidden: true,
-                rawNumbers: true,
-            });
-            return Buffer.from(csvContent);
-        };
-        let bodyBuffer;
-        try {
-            bodyBuffer = await new Promise((resolve, reject) => {
-                let fileData = null;
-                let fileName = null;
-                let fileEnded = false;
-                const busboyHeaders = {
-                    'content-type': contentType || '',
-                };
-                const busboy = new Busboy({
-                    headers: busboyHeaders,
-                    preservePath: true,
-                });
-                busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
-                    if (fieldname !== 'file') {
-                        file.resume(); // Skip this file
-                        return;
-                    }
-                    console.log('File upload started:', {
-                        fieldname,
-                        filename,
-                        encoding,
-                        mimetype,
-                    });
-                    fileName = filename;
-                    const chunks = [];
-                    file.on('data', (chunk) => {
-                        chunks.push(chunk);
-                    });
-                    file.on('end', () => {
-                        fileEnded = true;
-                        if (chunks.length > 0) {
-                            fileData = Buffer.concat(chunks);
-                            try {
-                                if (!filename) {
-                                    throw new Error('No filename provided');
-                                }
-                                let finalFileName = filename;
-                                // Si es un archivo Excel, convertirlo a CSV
-                                if (mimetype ===
-                                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-                                    filename.toLowerCase().endsWith('.xlsx')) {
-                                    console.log('Converting XLSX to CSV...');
-                                    fileData = convertXlsxToCsv(fileData);
-                                    finalFileName = filename.replace(/\.xlsx$/i, '.csv');
-                                    console.log('XLSX converted to CSV successfully');
-                                }
-                                console.log('File received:', {
-                                    originalName: filename,
-                                    finalName: finalFileName,
-                                    size: fileData.length,
-                                    originalType: mimetype,
-                                    finalType: 'text/csv',
-                                });
-                                fileName = finalFileName; // Actualizar el fileName para uso posterior
-                                resolve(new Uint8Array(fileData));
-                            }
-                            catch (error) {
-                                console.error('Error processing file:', error);
-                                reject(error);
-                            }
-                        }
-                        else {
-                            reject(new Error('Empty file received'));
-                        }
-                    });
-                });
-                busboy.on('finish', () => {
-                    if (!fileEnded) {
-                        reject(new Error('No file field found in form data'));
-                    }
-                });
-                // Manejar el stream directamente
-                if (request.body) {
-                    const reader = request.body.getReader();
-                    const pump = async () => {
-                        try {
-                            while (true) {
-                                const { done, value } = await reader.read();
-                                if (done)
-                                    break;
-                                busboy.write(value);
-                            }
-                            busboy.end();
-                        }
-                        catch (err) {
-                            reject(err);
-                        }
-                    };
-                    pump();
-                }
-                else {
-                    reject(new Error('No request body found'));
-                }
-            });
+        const payload = await request.json();
+        if (!payload.fileContent || !payload.fileName) {
+            return new Response('Missing required fields', { status: 400 });
         }
-        catch (error) {
-            console.error('Error processing form data:', error);
-            return new Response('Error processing form data: ' + error, { status: 400 });
-        }
+        // Convert base64 to buffer
+        const fileBuffer = Buffer.from(payload.fileContent, 'base64');
+        const bodyBuffer = new Uint8Array(fileBuffer);
+        console.log('File received:', {
+            fileName: payload.fileName,
+            size: bodyBuffer.length,
+            type: payload.fileType || 'text/csv'
+        });
         console.log('Body buffer length:', bodyBuffer.length);
         if (bodyBuffer.length === 0) {
             console.log('No content detected');

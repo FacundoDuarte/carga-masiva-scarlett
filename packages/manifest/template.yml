@@ -1,19 +1,10 @@
 modules:
-  consumer:
-    - key: queue-consumer
-      queue: operations-queue
-      resolver:
-        function: resolver
-        method: operations-queue-listener
   jira:projectPage:
     - key: scarlet-operations-project-page
       resource: main
       resolver:
         endpoint: execution-remote-endpoint
       title: Scarlet Bulk Import
-  function:
-    - key: resolver
-      handler: index.handler
   endpoint:
     - key: execution-remote-endpoint
       remote: execution-remote
@@ -23,6 +14,17 @@ modules:
 resources:
   - key: main
     path: ../../packages/web/dist
+remotes:
+  - key: iss-rem-bucket
+    baseUrl: https://issue-reminder-app-dev-issrem-529202746267.s3.{{AWS-REGION}}.amazonaws.com
+    operations:
+      - compute
+      - fetch
+  - key: execution-remote
+    baseUrl: {{ApiUrl}}
+    operations:
+      - compute
+      - fetch
 permissions:
   scopes:
     - read:jira-work
@@ -43,17 +45,6 @@ permissions:
         - {{ApiUrl}}
         - issue-reminder-app-dev-issrem-529202746267.s3.amazonaws.com
         - atl-paas.net
-remotes:
-  - key: iss-rem-bucket
-    baseUrl: https://issue-reminder-app-dev-issrem-529202746267.s3.{{AWS-REGION}}.amazonaws.com
-    operations:
-      - compute
-      - fetch
-  - key: execution-remote
-    baseUrl: {{ApiUrl}}
-    operations:
-      - compute
-      - fetch
 app:
   runtime:
     name: nodejs20.x

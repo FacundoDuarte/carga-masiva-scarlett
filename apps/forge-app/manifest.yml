@@ -1,28 +1,32 @@
 modules:
-  consumer:
-    - key: queue-consumer
-      queue: operations-queue
-      resolver:
-        function: resolver
-        method: operations-queue-listener
   jira:projectPage:
     - key: scarlet-operations-project-page
       resource: main
       resolver:
         endpoint: execution-remote-endpoint
       title: Scarlet Bulk Import
-  function:
-    - key: resolver
-      handler: index.handler
   endpoint:
     - key: execution-remote-endpoint
       remote: execution-remote
+      route:
+        path: /Prod
       auth:
         appSystemToken:
           enabled: true
 resources:
   - key: main
     path: ../../packages/web/dist
+remotes:
+  - key: iss-rem-bucket
+    baseUrl: https://issue-reminder-app-dev-issrem-529202746267.s3.us-east-1.amazonaws.com
+    operations:
+      - compute
+      - fetch
+  - key: execution-remote
+    baseUrl: https://e6eutuy033.execute-api.us-east-1.amazonaws.com/
+    operations:
+      - compute
+      - fetch
 permissions:
   scopes:
     - read:jira-work
@@ -35,25 +39,14 @@ permissions:
   external:
     fetch:
       backend:
-        - https://43jzosjoja.execute-api.us-east-1.amazonaws.com/Prod/
+        - https://e6eutuy033.execute-api.us-east-1.amazonaws.com/
         - atl-paas.net
       client:
         - remote: iss-rem-bucket
         - remote: execution-remote
-        - https://43jzosjoja.execute-api.us-east-1.amazonaws.com/Prod/
+        - https://e6eutuy033.execute-api.us-east-1.amazonaws.com/
         - issue-reminder-app-dev-issrem-529202746267.s3.amazonaws.com
         - atl-paas.net
-remotes:
-  - key: iss-rem-bucket
-    baseUrl: https://issue-reminder-app-dev-issrem-529202746267.s3.us-east-1.amazonaws.com
-    operations:
-      - compute
-      - fetch
-  - key: execution-remote
-    baseUrl: https://43jzosjoja.execute-api.us-east-1.amazonaws.com/Prod/
-    operations:
-      - compute
-      - fetch
 app:
   runtime:
     name: nodejs20.x

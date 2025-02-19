@@ -1,0 +1,20 @@
+resources:
+  - key: web
+    tunnel:
+      port: 3001
+permissions:
+  external:
+    fetch:
+      backend:
+        - "*"
+      client:
+        - "*"
+  content:
+    scripts:
+      - unsafe-hashes
+      - unsafe-inline
+    styles:
+      - unsafe-inline
+app:
+  runtime:
+    snapshots: false

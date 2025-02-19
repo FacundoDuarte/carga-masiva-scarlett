@@ -18,8 +18,6 @@ export default async function post(request) {
         if (!traceId || !spanId || !authToken) {
             return new Response('Missing required headers: x-b3-traceid, x-b3-spanid, or authorization', { status: 400 });
         }
-        console.log('=== REQUEST DETAILS ===');
-        console.log('Headers:', Object.fromEntries(request.headers.entries()));
         // Validar el token de contexto
         const validation = await validateContextToken(authToken, process.env.APP_ID || '');
         if (!validation) {
