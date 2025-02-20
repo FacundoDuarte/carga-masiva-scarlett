@@ -67,20 +67,23 @@ export const validateContextToken = async (
   invocationToken: string,
   appId: string,
 ): Promise<ValidationResponse | undefined> => {
+  console.log('Parametros: ', invocationToken, appId);
   const jwksUrl = 'https://forge.cdn.prod.atlassian-dev.net/.well-known/jwks.json';
-  const JWKS = createRemoteJWKSet(new URL(jwksUrl) as URL);
+  const JWKS = createRemoteJWKSet(new URL(jwksUrl));
 
   try {
+    console.log(`iniciando verificacion: ${invocationToken} - ${appId}`);
+    console.log(`JWKS: ${JSON.stringify(JWKS)}`);
     const {payload} = await jwtVerify(invocationToken, JWKS, {
       audience: `ari:cloud:ecosystem::app/${appId}`,
     });
-
+    console.log(`Payload: ${JSON.stringify(payload)}`);
     // Mapear el payload a ValidationResponse
     const response: ValidationResponse = {
       app: payload.app as ValidationResponse['app'],
       context: payload.context as ValidationResponse['context'],
       principal: payload.principal as ValidationResponse['principal'],
-      aud: Array.isArray(payload.aud) ? payload.aud[0] : (payload.aud as string),
+      aud: payload.aud as string, // El aud ya viene en el formato correcto
       exp: payload.exp as number,
       iat: payload.iat as number,
       iss: payload.iss as string,
@@ -108,7 +111,7 @@ interface FetchFromJiraParams {
 }
 
 export async function fetchFromJira({token, apiBaseUrl, path, method, body}: FetchFromJiraParams) {
-  const headers = {
+  const headers: Record<string, string> = {
     Accept: 'application/json',
     Authorization: `Bearer ${token}`,
   };
@@ -124,12 +127,25 @@ export async function fetchFromJira({token, apiBaseUrl, path, method, body}: Fet
 
 export async function transitionIssue(payload: Partial<Invoice>) {
   const {status, key: issueKey} = payload;
+  
+  if (!status || !issueKey) {
+    throw new Error('Status and issueKey are required for transition');
+  }
+
   // Si el estado que recibimos en el CSV es diferente al estado actual del ticket, entonces lo transicionamos al estado que
   // recibimos del CSV
   const issue = await getExistingIssues(`key = ${issueKey}`, ['status']);
+  if (!issue.length) {
+    throw new Error(`Issue with key ${issueKey} not found`);
+  }
+
+  if (!issue[0].fields?.status?.name) {
+    throw new Error(`Status field not found for issue ${issueKey}`);
+  }
+
   const actualStatus = issue[0].fields.status.name;
 
-  if (status.name != actualStatus) {
+  if (status.name !== actualStatus) {
     const bodyData = {
       transition: {
         id: status.transitionId,

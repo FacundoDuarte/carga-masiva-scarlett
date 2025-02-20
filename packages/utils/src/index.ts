@@ -17,8 +17,14 @@ export {
 // Re-exportar todo desde functions.ts
 export {
   requestTicketsJira,
-  getExistingIssues
+  getExistingIssues,
+  validateContextToken
 } from './functions';
+
+// Re-exportar todo desde interfaces.ts
+export type {
+  ValidationResponse
+} from './interfaces';
 
 // Re-exportar todo desde custom_fields.ts
 export {

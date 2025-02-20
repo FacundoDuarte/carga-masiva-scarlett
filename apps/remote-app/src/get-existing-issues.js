@@ -1,3 +1,4 @@
+import { CF, CsvRowHeaders } from 'utils/custom_fields';
 import { getExistingIssues } from 'utils/functions';
 export default async function post(request) {
     try {
@@ -16,12 +17,12 @@ export default async function post(request) {
             return new Response('Invalid request body: Items array is required', { status: 400 });
         }
         const parsedData = responseBody.Items;
-        const scarlettIds = parsedData.map((row) => row["N\u00FAmero de documento" /* CsvRowHeaders.uuid */]);
+        const scarlettIds = parsedData.map((row) => row[CsvRowHeaders.uuid]);
         console.log(`Cantidad de scarlett Ids: ${scarlettIds.length}`, scarlettIds);
-        const existingIssues = await getExistingIssues(`"Scarlett ID[Labels]" in (${scarlettIds.join(', ')})`, ["customfield_19899" /* CF.scarlett_id */, "summary" /* CF.summary */]);
+        const existingIssues = await getExistingIssues(`"Scarlett ID[Labels]" in (${scarlettIds.join(', ')})`, [CF.scarlett_id, CF.summary]);
         console.log('Existing issues:', existingIssues);
         // Remover las filas que tienen '0' en la columna 'uuid'
-        const filteredData = parsedData.filter((row) => row["N\u00FAmero de documento" /* CsvRowHeaders.uuid */] !== '0');
+        const filteredData = parsedData.filter((row) => row[CsvRowHeaders.uuid] !== '0');
         return new Response(JSON.stringify({
             systemToken: 'abc123',
             sessionValid: true,

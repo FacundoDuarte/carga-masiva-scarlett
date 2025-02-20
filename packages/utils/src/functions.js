@@ -51,18 +51,22 @@ export async function getExistingIssues(query, fields) {
     return data.issues;
 }
 export const validateContextToken = async (invocationToken, appId) => {
+    console.log('Parametros: ', invocationToken, appId);
     const jwksUrl = 'https://forge.cdn.prod.atlassian-dev.net/.well-known/jwks.json';
     const JWKS = createRemoteJWKSet(new URL(jwksUrl));
     try {
+        console.log(`iniciando verificacion: ${invocationToken} - ${appId}`);
+        console.log(`JWKS: ${JSON.stringify(JWKS)}`);
         const { payload } = await jwtVerify(invocationToken, JWKS, {
             audience: `ari:cloud:ecosystem::app/${appId}`,
         });
+        console.log(`Payload: ${JSON.stringify(payload)}`);
         // Mapear el payload a ValidationResponse
         const response = {
             app: payload.app,
             context: payload.context,
             principal: payload.principal,
-            aud: Array.isArray(payload.aud) ? payload.aud[0] : payload.aud,
+            aud: payload.aud, // El aud ya viene en el formato correcto
             exp: payload.exp,
             iat: payload.iat,
             iss: payload.iss,
@@ -94,11 +98,20 @@ export async function fetchFromJira({ token, apiBaseUrl, path, method, body }) {
 }
 export async function transitionIssue(payload) {
     const { status, key: issueKey } = payload;
+    if (!status || !issueKey) {
+        throw new Error('Status and issueKey are required for transition');
+    }
     // Si el estado que recibimos en el CSV es diferente al estado actual del ticket, entonces lo transicionamos al estado que
     // recibimos del CSV
     const issue = await getExistingIssues(`key = ${issueKey}`, ['status']);
+    if (!issue.length) {
+        throw new Error(`Issue with key ${issueKey} not found`);
+    }
+    if (!issue[0].fields?.status?.name) {
+        throw new Error(`Status field not found for issue ${issueKey}`);
+    }
     const actualStatus = issue[0].fields.status.name;
-    if (status.name != actualStatus) {
+    if (status.name !== actualStatus) {
         const bodyData = {
             transition: {
                 id: status.transitionId,

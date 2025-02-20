@@ -1,10 +1,38 @@
-import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
-import { validateContextToken } from 'utils/functions';
-const sqsClient = new SQSClient({
-    region: process.env.AWS_REGION,
-});
+// import {SQSClient, SendMessageCommand} from '@aws-sdk/client-sqs';
+import { validateContextToken } from '/opt/utils';
+import * as fs from 'fs';
+import * as path from 'path';
+// const sqsClient = new SQSClient({
+//   region: process.env.AWS_REGION,
+// });
+function getDirStructure(dir) {
+    const items = fs.readdirSync(dir);
+    const result = {};
+    for (const item of items) {
+        const fullPath = path.join(dir, item);
+        const stats = fs.statSync(fullPath);
+        if (stats.isDirectory()) {
+            result[item] = getDirStructure(fullPath);
+        }
+        else {
+            result[item] = {
+                size: stats.size,
+                modified: stats.mtime,
+                type: 'file',
+            };
+        }
+    }
+    return result;
+}
 export default async function post(request) {
     try {
+        // // Obtener la estructura del directorio /opt
+        // const optStructure = getDirStructure('/opt');
+        // return new Response(JSON.stringify(optStructure), {
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //   },
+        // });
         if (request.method == 'OPTIONS') {
             return new Response(null, {
                 status: 204,
@@ -18,7 +46,12 @@ export default async function post(request) {
         }
         // Validar método HTTP
         if (request.method !== 'POST') {
-            return new Response('Method not allowed', { status: 405 });
+            return new Response('Method not allowed', {
+                status: 405,
+                headers: {
+                    'Content-Type': 'text/plain'
+                }
+            });
         }
         // Obtener headers requeridos
         const traceId = request.headers.get('x-b3-traceid');
@@ -29,12 +62,20 @@ export default async function post(request) {
         if (!traceId || !spanId || !authToken) {
             return new Response('Missing required headers: x-b3-traceid, x-b3-spanid, or authorization', {
                 status: 400,
+                headers: {
+                    'Content-Type': 'text/plain'
+                }
             });
         }
         // Validar el token de contexto
         const validation = (await validateContextToken(authToken, process.env.APP_ID || ''));
         if (!validation) {
-            return new Response('Invalid context token', { status: 401 });
+            return new Response('Invalid context token', {
+                status: 401,
+                headers: {
+                    'Content-Type': 'text/plain'
+                }
+            });
         }
         // Extraer información relevante
         const { app, context } = validation;
@@ -50,21 +91,21 @@ export default async function post(request) {
             timestamp: new Date().toISOString(),
         };
         // Enviar mensaje a SQS
-        const command = new SendMessageCommand({
-            QueueUrl: process.env.SQS_QUEUE_URL,
-            MessageBody: JSON.stringify(message),
-            MessageAttributes: {
-                TraceId: {
-                    DataType: 'String',
-                    StringValue: traceId,
-                },
-                SpanId: {
-                    DataType: 'String',
-                    StringValue: spanId,
-                },
-            },
-        });
-        await sqsClient.send(command);
+        // const command = new SendMessageCommand({
+        //   QueueUrl: process.env.SQS_QUEUE_URL,
+        //   MessageBody: JSON.stringify(message),
+        //   MessageAttributes: {
+        //     TraceId: {
+        //       DataType: 'String',
+        //       StringValue: traceId,
+        //     },
+        //     SpanId: {
+        //       DataType: 'String',
+        //       StringValue: spanId,
+        //     },
+        //   },
+        // });
+        // await sqsClient.send(command);
         return new Response(JSON.stringify({
             success: true,
             message: 'Session validated and task queued',

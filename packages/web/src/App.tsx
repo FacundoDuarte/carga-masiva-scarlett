@@ -321,7 +321,7 @@ async function _invokeCsvOperations(
   projectId: string,
 ): Promise<string> {
   const res = await invokeRemote<{ executionId: string }>({
-    path: '/Prod/execution',
+    path: '/Prod/validate-session',
     method: 'POST',
     body: JSON.stringify({
       projectId: projectId,

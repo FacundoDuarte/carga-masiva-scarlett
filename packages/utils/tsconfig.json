@@ -1,15 +1,24 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "target": "ESNext",
+    "target": "ES2022",
+    "module": "Node16",
+    // "moduleResolution": "bundler",
     "rootDir": "./src",
     "outDir": "./dist",
     "composite": true,
     "declaration": true,
     "declarationMap": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
+    "typeRoots": ["node_modules/@types", "./types"],
+    "preserveConstEnums": true,
+    "resolveJsonModule": true,
+    "noEmit": false,
+    "sourceMap": false
   },
   "include": ["./src/**/*.ts", "./src/**/*.tsx"]
 }

@@ -20,6 +20,8 @@
     "tunnel": "cd apps/forge-app && forge tunnel",
     "build:web": "turbo run build --filter=web",
     "build:manifest": "turbo run build --filter=manifest",
+    "build:utils": "turbo run build --filter=utils",
+    "build:remote": "turbo run build --filter=remote-app",
     "install:all": "bun install && turbo run install:deps",
     "install:deps": "bun install",
     "user:facu": "./change-user.sh --facu",
