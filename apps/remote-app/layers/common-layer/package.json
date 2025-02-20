@@ -1,8 +1,0 @@
-{
-  "name": "common-layer",
-  "version": "1.0.0",
-  "type": "module",
-  "devDependencies": {
-    "@types/aws-lambda": "~8"
-  }
-}

@@ -1,13 +1,23 @@
 import {SQSClient, SendMessageCommand} from '@aws-sdk/client-sqs';
-import {validateContextToken} from 'utils/functions';
-import {ValidationResponse} from 'utils/interfaces';
-
+import {validateContextToken} from '/opt/utils/functions';
+import {ValidationResponse} from '/opt/utils/interfaces';
 const sqsClient = new SQSClient({
   region: process.env.AWS_REGION,
 });
 
 export default async function post(request: Request): Promise<Response> {
   try {
+    if (request.method == 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Max-Age': '86400',
+        },
+      });
+    }
     // Validar método HTTP
     if (request.method !== 'POST') {
       return new Response('Method not allowed', {status: 405});
@@ -21,14 +31,16 @@ export default async function post(request: Request): Promise<Response> {
 
     // Validar headers requeridos
     if (!traceId || !spanId || !authToken) {
-      return new Response(
-        'Missing required headers: x-b3-traceid, x-b3-spanid, or authorization',
-        {status: 400},
-      );
+      return new Response('Missing required headers: x-b3-traceid, x-b3-spanid, or authorization', {
+        status: 400,
+      });
     }
 
     // Validar el token de contexto
-    const validation = await validateContextToken(authToken, process.env.APP_ID || '') as ValidationResponse;
+    const validation = (await validateContextToken(
+      authToken,
+      process.env.APP_ID || '',
+    )) as ValidationResponse;
 
     if (!validation) {
       return new Response('Invalid context token', {status: 401});

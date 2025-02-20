@@ -1,12 +1,15 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "module": "ES6",
+    "module": "ESNext",
     "moduleResolution": "bundler",
-    "target": "ES6",
-    "rootDir": ".",
-    "outDir": "dist",
+    "target": "ESNext",
+    "rootDir": "./src",
+    "outDir": "./dist",
     "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "skipLibCheck": true
   },
-  "include": ["./**/*.ts", "./**/*.tsx"]
+  "include": ["./src/**/*.ts", "./src/**/*.tsx"]
 }

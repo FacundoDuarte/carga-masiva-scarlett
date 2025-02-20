@@ -35,7 +35,7 @@ export const requestTicketsJira = async (payload: Partial<Invoice>) => {
         `${response.status} - ${await response.text()}`,
     );
   }
-  
+
   if (response.status !== 204) {
     const data = await response.json();
     await transitionIssue(payload);
@@ -63,30 +63,48 @@ export async function getExistingIssues(query: string, fields: string[]): Promis
   return data.issues;
 }
 
-export const validateContextToken = async (invocationToken: string, appId: string): Promise<ValidationResponse | undefined> => {
+export const validateContextToken = async (
+  invocationToken: string,
+  appId: string,
+): Promise<ValidationResponse | undefined> => {
   const jwksUrl = 'https://forge.cdn.prod.atlassian-dev.net/.well-known/jwks.json';
   const JWKS = createRemoteJWKSet(new URL(jwksUrl) as URL);
 
   try {
-    const payload = await jwtVerify(invocationToken, JWKS, {
+    const {payload} = await jwtVerify(invocationToken, JWKS, {
       audience: `ari:cloud:ecosystem::app/${appId}`,
     });
-    console.log(payload);
-    return payload;
+
+    // Mapear el payload a ValidationResponse
+    const response: ValidationResponse = {
+      app: payload.app as ValidationResponse['app'],
+      context: payload.context as ValidationResponse['context'],
+      principal: payload.principal as ValidationResponse['principal'],
+      aud: Array.isArray(payload.aud) ? payload.aud[0] : (payload.aud as string),
+      exp: payload.exp as number,
+      iat: payload.iat as number,
+      iss: payload.iss as string,
+      nbf: payload.nbf as number,
+      jti: payload.jti as string,
+    };
+
+    return response;
   } catch (e) {
     console.error(e);
+    return undefined;
   }
 };
 
 ('use strict');
 import fetch from 'node-fetch';
+import {ValidationResponse} from './interfaces';
 
 interface FetchFromJiraParams {
   token: string;
   apiBaseUrl: string;
   path: string;
   method: string;
-  body?: unknown;
+  body?: string | object;
 }
 
 export async function fetchFromJira({token, apiBaseUrl, path, method, body}: FetchFromJiraParams) {
@@ -94,32 +112,36 @@ export async function fetchFromJira({token, apiBaseUrl, path, method, body}: Fet
     Accept: 'application/json',
     Authorization: `Bearer ${token}`,
   };
-  return await fetch(`${apiBaseUrl}/rest/api${path}`, {headers, method, body});
+  if (typeof body === 'string') {
+    headers['Content-Type'] = 'application/json';
+  }
+  return await fetch(`${apiBaseUrl}/rest/api${path}`, {
+    headers,
+    method,
+    body: method == 'POST' ? JSON.stringify(body) : undefined,
+  });
 }
 
-export async function transitionIssue(payload: Partial<Invoice>){
+export async function transitionIssue(payload: Partial<Invoice>) {
   const {status, key: issueKey} = payload;
   // Si el estado que recibimos en el CSV es diferente al estado actual del ticket, entonces lo transicionamos al estado que
   // recibimos del CSV
-  const issue = await getExistingIssues(`key = ${issueKey}`, ["status"]);
+  const issue = await getExistingIssues(`key = ${issueKey}`, ['status']);
   const actualStatus = issue[0].fields.status.name;
 
-  if(status.name != actualStatus){
-    
-  const bodyData = {
-    transition: {
-      id: status.transitionId
-    },
-  };
+  if (status.name != actualStatus) {
+    const bodyData = {
+      transition: {
+        id: status.transitionId,
+      },
+    };
 
-  const response = await fetchFromJira({
-    token: 'token',
-    apiBaseUrl: 'appBaseUrl',
-    path: `/rest/api/3/issue/${issueKey}/transitions`,
-    method: "POST",
-    body: JSON.stringify(bodyData),
-  });
-}
- 
-
+    const response = await fetchFromJira({
+      token: 'token',
+      apiBaseUrl: 'appBaseUrl',
+      path: `/rest/api/3/issue/${issueKey}/transitions`,
+      method: 'POST',
+      body: JSON.stringify(bodyData),
+    });
+  }
 }

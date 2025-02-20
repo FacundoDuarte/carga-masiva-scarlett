@@ -11,7 +11,8 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "clean": "rm -rf build node_modules bun.lock",
+    "clean": "./clean.sh",
+    "clean:install": "bun run clean && bun install && turbo run install:deps",
     "start": "NODE_NO_WARNINGS=1 ts-node src/index.ts",
     "deploy:sam": "cd apps/remote-app && chmod +x deploy.sh && ./deploy.sh",
     "preview": "cd apps/remote-app && chmod +x deploy.sh && ./deploy.sh --preview",
@@ -25,25 +26,10 @@
     "user:facu:auto": ". ./change-user.sh --facu --auto"
   },
   "devDependencies": {
-    "@forge/api": "^4.1.2",
     "@types/bun": "^1.2.0",
-    "@types/papaparse": "^5.3.15",
-    "eslint": "^8.57.1",
-    "eslint-plugin-react-hooks": "^4.6.2",
     "turbo": "^2.4.1"
   },
   "dependencies": {
-    "@atlaskit/button": "^20.3.10",
-    "@atlaskit/form": "^11.0.2",
-    "@aws-sdk/client-s3": "^3.735.0",
-    "@aws-sdk/s3-request-presigner": "^3.735.0",
-    "@forge/events": "^0.9.6",
-    "@forge/react": "^10.10.1",
-    "@forge/resolver": "^1.6.3",
-    "bun": "^1.2.1",
-    "papaparse": "^5.5.2",
-    "prettier": "^3.5.1",
-    "prettier-plugin-sh": "^0.14.0",
-    "vite": "^6.1.0"
+    "bun": "^1.2.2"
   }
 }

@@ -65,7 +65,6 @@ export default function App() {
     };
   }, []);
 
-
   const ticketsResult = () => {
     if (ticketsPollingIntervalRef.current) return;
     ticketsPollingIntervalRef.current = setInterval(async () => {
@@ -116,21 +115,13 @@ export default function App() {
         });
         return;
       }
-      // First, convert the file to base64
-      const fileBase64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          // Get only the base64 data part, removing the data URL prefix
-          const base64 = reader.result as string;
-          resolve(base64.split(',')[1]);
+      // Primero obtenemos la URL pre-firmada
+      const response = await invokeRemote<{
+        body: {
+          success: boolean;
+          fileId: string;
+          url: string;
         };
-        reader.readAsDataURL(file);
-      });
-
-      const uploadUrlPayload = await invokeRemote<{
-        fileId: string;
-        key: string;
-        rowCount: number;
       }>({
         method: 'POST',
         path: '/Prod/get-upload-url',
@@ -139,17 +130,51 @@ export default function App() {
         },
         body: JSON.stringify({
           fileName: file.name,
-          fileContent: fileBase64,
           fileType: 'text/csv',
-          fileSize: file.size
         }),
       });
-      console.log('uploadUrlPayload: ', uploadUrlPayload);
-      const { fileId, key, rowCount } = uploadUrlPayload;
-      // const { fileId, key, rowCount } = await uploadUrlPayload.json();
-      setObjectKey(fileId);
-      console.log(`fileId: ${fileId}, key: ${key}, rowCount: ${rowCount}`);
-      setMessage(null);
+      console.log('Full response:', JSON.stringify(response, null, 2));
+
+      if (!response.body) {
+        throw new Error('Response body is undefined');
+      }
+
+      const { fileId, url } = response.body;
+
+      if (!url) {
+        throw new Error('Pre-signed URL is undefined');
+      }
+
+      console.log('Got pre-signed URL:', url);
+      console.log('FileId:', fileId);
+
+      // Ahora subimos el archivo directamente a S3
+      try {
+        console.log('Attempting to upload file to:', url);
+        const uploadResponse = await fetch(url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'text/csv',
+          },
+          body: file, // Enviamos el archivo directamente
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(
+            `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`,
+          );
+        }
+
+        console.log('File uploaded successfully');
+        setObjectKey(fileId);
+        setMessage(null);
+      } catch (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        setMessage({
+          message: `Error al subir el archivo: ${uploadError.message}`,
+          appereance: 'error',
+        });
+      }
     } catch (err) {
       console.error(err);
       setMessage({ message: err as string, appereance: 'error' });
@@ -167,6 +192,7 @@ export default function App() {
     setMessage(null);
 
     try {
+      setIsProcessing(Status.inprogress);
       const executionId = await _invokeCsvOperations(
         objectKey,
         context.extension.project.id,
@@ -177,7 +203,6 @@ export default function App() {
         message: 'Operaciones iniciadas con éxito',
         appereance: 'information',
       });
-      setIsProcessing(Status.inprogress);
     } catch (err) {
       console.error('Error al iniciar operaciones:', err);
       setMessage({
@@ -189,15 +214,9 @@ export default function App() {
     }
   };
 
-  // Función para descargar el template del CSV
   async function _downloadTemplate() {
-    //   const url: string = await invoke('download-template', {});
-    //   console.log(`url: ${url}`);
-    //   e.preventDefault();
-    //   router.open(url);
-    // }
     const payload = await invokeRemote({
-      path: '/download-template',
+      path: '/Prod/download-template',
       method: 'GET',
     });
     return payload;
@@ -221,7 +240,7 @@ export default function App() {
             <div style={{ width: 600 }}>
               <Field
                 name="csv-file"
-                label="Selecciona tu archivo CSV"
+                label="Seleccionaaa tu archivo CSV"
                 isRequired
               >
                 {({ fieldProps, error }) => (
@@ -302,7 +321,7 @@ async function _invokeCsvOperations(
   projectId: string,
 ): Promise<string> {
   const res = await invokeRemote<{ executionId: string }>({
-    path: '/execution',
+    path: '/Prod/execution',
     method: 'POST',
     body: JSON.stringify({
       projectId: projectId,
@@ -311,19 +330,3 @@ async function _invokeCsvOperations(
   });
   return res.executionId;
 }
-
-// async function _persisteStatesOnStorage(
-//   executionId: string,
-//   states: TicketStates,
-// ) {
-//   await invoke('persist-status-storage', { executionId, ticketStates: states });
-// }
-
-// async function _getTicketsResult(operationId: string): Promise<TicketStates> {
-//   // return await invoke('get-tickets-states');
-//   const res = await invokeRemote<TicketStates>({
-//     path: `/execution/${operationId}`,
-//     method: 'GET',
-//   });
-//   return res;
-// }

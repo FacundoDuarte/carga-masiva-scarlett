@@ -1,13 +1,6 @@
 import {v4 as uuidv4} from 'uuid';
-import {S3Client} from 'bun';
+import { S3Client } from 'bun';
 
-
-interface FileUploadPayload {
-  fileName: string;
-  fileContent: string;
-  fileType?: string;
-  fileSize?: number;
-}
 
 export default async function post(request: Request): Promise<Response> {
   // Handle CORS preflight request
@@ -35,38 +28,19 @@ export default async function post(request: Request): Promise<Response> {
 
     const contentType = request.headers.get('content-type');
     if (!contentType?.includes('application/json')) {
+      console.log('Content-Type:', contentType);
       return new Response('Content-Type must be application/json', {status: 400});
     }
 
-    const payload = await request.json() as FileUploadPayload;
-    if (!payload.fileContent || !payload.fileName) {
-      return new Response('Missing required fields', {status: 400});
+    try {
+      const rawBody = await request.json();
+      // Si el body es un string, intentamos parsearlo
+      const payload = typeof rawBody === 'string' ? JSON.parse(rawBody) : rawBody;
+      console.log('Parsed payload:', payload);
+    } catch (error) {
+      console.error('Error parsing payload:', error);
+      return new Response('Invalid JSON payload: ' + error, {status: 400});
     }
-
-    // Convert base64 to buffer
-    const fileBuffer = Buffer.from(payload.fileContent, 'base64');
-    const bodyBuffer = new Uint8Array(fileBuffer);
-
-    console.log('File received:', {
-      fileName: payload.fileName,
-      size: bodyBuffer.length,
-      type: payload.fileType || 'text/csv'
-    });
-
-    console.log('Body buffer length:', bodyBuffer.length);
-
-    if (bodyBuffer.length === 0) {
-      console.log('No content detected');
-      return new Response('No CSV content provided', {status: 400});
-    }
-
-    // Log the first few bytes for debugging
-    console.log(
-      'First bytes (hex):',
-      Array.from(bodyBuffer.slice(0, 16))
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join(' '),
-    );
 
     const client = new S3Client({
       accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -77,23 +51,26 @@ export default async function post(request: Request): Promise<Response> {
 
     const fileId = uuidv4();
     const key = `uploads/${fileId}.csv`;
+    console.log('Creating presigned URL for key:', key);
+    
     const s3File = client.file(key);
-
-    // Count CSV rows (excluding header)
-    const csvContent = new TextDecoder().decode(bodyBuffer);
-    const rows = csvContent.trim().split('\n');
-    const rowCount = Math.max(0, rows.length - 1); // Subtract 1 for header
-
-    const writer = s3File.writer();
-    writer.write(bodyBuffer);
-    await writer.end();
+    const url = s3File.presign({
+      expiresIn: 3600,
+      method: 'PUT',
+    });
+    
+    console.log('Generated presigned URL:', url);
+    
+    if (!url) {
+      console.error('Failed to generate presigned URL');
+      return new Response('Failed to generate upload URL', { status: 500 });
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
         fileId,
-        key,
-        rowCount,
+        url,
       }),
       {
         headers: {

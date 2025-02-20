@@ -1,4 +1,4 @@
-import {S3Client} from 'bun';
+import { S3Client } from 'bun';
 
 export default async function get(request: Request): Promise<Response> {
   try {

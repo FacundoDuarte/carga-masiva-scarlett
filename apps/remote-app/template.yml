@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: |
   Proyecto SAM con AWS Step Functions y Lambdas en Node.js 20.x con TypeScript
@@ -10,9 +10,31 @@ Globals:
       - arm64
     Layers:
       - arn:aws:lambda:us-east-1:529202746267:layer:bun:1
+      - !Ref UtilsLayer
   Api:
     OpenApiVersion: 3.0.1
 Resources:
+  UtilsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: "esnext"
+        Sourcemap: true
+        Platform: node # Aunque usamos bun, esbuild necesita una plataforma conocida
+        Format: esm
+        OutExtension:
+          - '.js=.js'
+    Properties:
+      LayerName: !Sub ${AWS::StackName}-utils
+      Description: Layer containing utils package
+      ContentUri: ../../packages/utils
+      CompatibleRuntimes:
+        - provided.al2
+      RetentionPolicy: Retain
+      ContentBasedHash: true
+
   ScarletExecutionQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -49,7 +71,7 @@ Resources:
         openapi: 3.0.1
         info:
           title: Scarlett API
-          version: '1.0'
+          version: "1.0"
         x-amazon-apigateway-binary-media-types:
           - multipart/form-data
         paths:
@@ -61,10 +83,10 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                '200':
+                "200":
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '''*'''
+                allowOrigin: "'*'"
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -83,10 +105,10 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                '200':
+                "200":
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '''*'''
+                allowOrigin: "'*'"
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -106,10 +128,10 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                '200':
+                "200":
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '''*'''
+                allowOrigin: "'*'"
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -129,10 +151,10 @@ Resources:
                 httpMethod: GET
                 type: aws_proxy
               responses:
-                '200':
+                "200":
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '''*'''
+                allowOrigin: "'*'"
                 allowMethods:
                   - GET
                   - OPTIONS
@@ -151,17 +173,32 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - validate-session.mts
+          - src/validate-session.ts
         Bundle: true
         Minify: true
         Format: esm
         Platform: node
         Target: esnext
         External:
-          - '@aws-sdk/client-sqs'
-          - '@aws-sdk/*'
+          - "@aws-sdk/client-sqs"
+          - "@aws-sdk/*"
           - aws-sdk
-          - '@forge/api'
+          - "@forge/api"
+          - bun
+          - bun:*
+        Define:
+          "process.env.BUN_RUNTIME": "true"
+        Packages: "external"
+        NodeModules: ["*"]
+        Alias:
+          utils: ../../packages/utils/src
+        MainFields:
+          - module
+          - main
+        OutExtension:
+          - ".js=.mjs"
+        Banner:
+          js: "import { createRequire } from 'module';const require = createRequire(import.meta.url);"
     Properties:
       Environment:
         Variables:
@@ -170,8 +207,8 @@ Resources:
         - SQSSendMessagePolicy:
             QueueName: !GetAtt ScarletExecutionQueue.QueueName
         - AWSLambdaBasicExecutionRole
-      Handler: validate-session.handler
-      CodeUri: ./
+      Handler: validate-session.post
+      CodeUri: ./src
       Events:
         ApiPOSTexecution:
           Type: Api
@@ -199,9 +236,9 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - '@aws-sdk/*'
+          - "@aws-sdk/*"
           - aws-sdk
-          - '@forge/api'
+          - "@forge/api"
           - date-fns
           - jose
           - uuid
@@ -229,9 +266,9 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - '@aws-sdk/*'
+          - "@aws-sdk/*"
           - aws-sdk
-          - '@forge/api'
+          - "@forge/api"
           - date-fns
           - jose
           - uuid
@@ -259,9 +296,9 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - '@aws-sdk/*'
+          - "@aws-sdk/*"
           - aws-sdk
-          - '@forge/api'
+          - "@forge/api"
           - date-fns
           - jose
           - uuid
@@ -318,7 +355,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -330,7 +367,7 @@ Resources:
       Policies:
         - PolicyName: StepFunctionsExecutionPolicy
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
@@ -340,7 +377,7 @@ Resources:
                   - sqs:DeleteMessage
                   - sqs:GetQueueAttributes
                   - states:StartExecution
-                Resource: '*'
+                Resource: "*"
   ValidateSessionFunctionUrl:
     Type: AWS::Lambda::Url
     Properties:
@@ -383,9 +420,9 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - '@aws-sdk/*'
+          - "@aws-sdk/*"
           - aws-sdk
-          - '@forge/api'
+          - "@forge/api"
           - date-fns
           - jose
           - uuid

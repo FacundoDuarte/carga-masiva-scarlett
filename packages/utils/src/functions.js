@@ -54,14 +54,26 @@ export const validateContextToken = async (invocationToken, appId) => {
     const jwksUrl = 'https://forge.cdn.prod.atlassian-dev.net/.well-known/jwks.json';
     const JWKS = createRemoteJWKSet(new URL(jwksUrl));
     try {
-        const payload = await jwtVerify(invocationToken, JWKS, {
+        const { payload } = await jwtVerify(invocationToken, JWKS, {
             audience: `ari:cloud:ecosystem::app/${appId}`,
         });
-        console.log(payload);
-        return payload;
+        // Mapear el payload a ValidationResponse
+        const response = {
+            app: payload.app,
+            context: payload.context,
+            principal: payload.principal,
+            aud: Array.isArray(payload.aud) ? payload.aud[0] : payload.aud,
+            exp: payload.exp,
+            iat: payload.iat,
+            iss: payload.iss,
+            nbf: payload.nbf,
+            jti: payload.jti,
+        };
+        return response;
     }
     catch (e) {
         console.error(e);
+        return undefined;
     }
 };
 ('use strict');
@@ -71,25 +83,32 @@ export async function fetchFromJira({ token, apiBaseUrl, path, method, body }) {
         Accept: 'application/json',
         Authorization: `Bearer ${token}`,
     };
-    return await fetch(`${apiBaseUrl}/rest/api${path}`, { headers, method, body });
+    if (typeof body === 'string') {
+        headers['Content-Type'] = 'application/json';
+    }
+    return await fetch(`${apiBaseUrl}/rest/api${path}`, {
+        headers,
+        method,
+        body: method == 'POST' ? JSON.stringify(body) : undefined,
+    });
 }
 export async function transitionIssue(payload) {
     const { status, key: issueKey } = payload;
     // Si el estado que recibimos en el CSV es diferente al estado actual del ticket, entonces lo transicionamos al estado que
     // recibimos del CSV
-    const issue = await getExistingIssues(`key = ${issueKey}`, ["status"]);
+    const issue = await getExistingIssues(`key = ${issueKey}`, ['status']);
     const actualStatus = issue[0].fields.status.name;
     if (status.name != actualStatus) {
         const bodyData = {
             transition: {
-                id: status.transitionId
+                id: status.transitionId,
             },
         };
         const response = await fetchFromJira({
             token: 'token',
             apiBaseUrl: 'appBaseUrl',
             path: `/rest/api/3/issue/${issueKey}/transitions`,
-            method: "POST",
+            method: 'POST',
             body: JSON.stringify(bodyData),
         });
     }

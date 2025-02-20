@@ -39,11 +39,13 @@ permissions:
       backend:
         - {{ApiUrl}}
         - atl-paas.net
+        - s3.us-east-1.amazonaws.com
       client:
         - remote: iss-rem-bucket
         - remote: execution-remote
         - {{ApiUrl}}
         - issue-reminder-app-dev-issrem-529202746267.s3.amazonaws.com
+        - s3.us-east-1.amazonaws.com
         - atl-paas.net
 app:
   runtime:

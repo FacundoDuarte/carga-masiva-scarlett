@@ -5,6 +5,17 @@ const sqsClient = new SQSClient({
 });
 export default async function post(request) {
     try {
+        if (request.method == 'OPTIONS') {
+            return new Response(null, {
+                status: 204,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Max-Age': '86400',
+                },
+            });
+        }
         // Validar método HTTP
         if (request.method !== 'POST') {
             return new Response('Method not allowed', { status: 405 });
@@ -16,10 +27,12 @@ export default async function post(request) {
         const forgeOauthSystem = request.headers.get('x-forge-oauth-system');
         // Validar headers requeridos
         if (!traceId || !spanId || !authToken) {
-            return new Response('Missing required headers: x-b3-traceid, x-b3-spanid, or authorization', { status: 400 });
+            return new Response('Missing required headers: x-b3-traceid, x-b3-spanid, or authorization', {
+                status: 400,
+            });
         }
         // Validar el token de contexto
-        const validation = await validateContextToken(authToken, process.env.APP_ID || '');
+        const validation = (await validateContextToken(authToken, process.env.APP_ID || ''));
         if (!validation) {
             return new Response('Invalid context token', { status: 401 });
         }
