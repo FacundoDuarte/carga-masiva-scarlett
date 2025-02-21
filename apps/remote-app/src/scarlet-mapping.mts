@@ -1,7 +1,7 @@
-import { scarlettMapping } from 'utils/custom_fields';
-import { Invoice, Issue } from 'utils/types';
+import { scarlettMapping } from '/opt/utils/custom_fields';
+import { Invoice, Issue } from '/opt/utils/types';
 
-export default function post(event): Response {
+export default function post(event: Request): Response {
   const partialInvoice: Partial<Invoice> = event;
 
   const issue: Issue = {

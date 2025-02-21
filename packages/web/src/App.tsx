@@ -328,5 +328,6 @@ async function _invokeCsvOperations(
       fileId: s3Key,
     }),
   });
+  console.log(res);
   return res.executionId;
 }

@@ -1,4 +1,4 @@
-import { scarlettMapping } from 'utils/custom_fields';
+import { scarlettMapping } from '/opt/utils/custom_fields';
 export default function post(event) {
     const partialInvoice = event;
     const issue = {

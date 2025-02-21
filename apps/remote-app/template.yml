@@ -8,26 +8,17 @@ Globals:
     Architectures:
       - arm64
     Layers:
-      # - !Ref UtilsLayer
+      - !Ref UtilsLayer
       - arn:aws:lambda:us-east-1:529202746267:layer:bun:1
   Api:
     OpenApiVersion: 3.0.1
 Resources:
   UtilsLayer:
     Type: AWS::Serverless::LayerVersion
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: false
-        Target: es2020
-        Sourcemap: true
-        Platform: node # Aunque usamos bun, esbuild necesita una plataforma conocida
-        Format: esm
-        OutDir: utils # Copiar directamente a /opt/utils
     Properties:
       LayerName: !Sub ${AWS::StackName}-utils
       Description: Layer containing utils package
-      ContentUri: ../../packages/utils/dist
+      ContentUri: ../../packages/utils/utils-layer.zip
       CompatibleRuntimes:
         - provided.al2
       RetentionPolicy: Retain

@@ -1,5 +1,5 @@
 // import {SQSClient, SendMessageCommand} from '@aws-sdk/client-sqs';
-import {validateContextToken, ValidationResponse} from '/opt/utils';
+import {validateContextToken, ValidationResponse} from '/opt/utils/index.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -29,15 +29,18 @@ function getDirStructure(dir: string): any {
   return result;
 }
 
+// export default async function post(request: Request): Promise<Response> {
+//   // Obtener la estructura del directorio /opt
+//   const optStructure = getDirStructure('/opt');
+//   console.log(optStructure);
+//   return new Response(JSON.stringify(optStructure), {
+//     headers: {
+//       'Content-Type': 'application/json',
+//     },
+//   });
+// }
 export default async function post(request: Request): Promise<Response> {
   try {
-    // // Obtener la estructura del directorio /opt
-    // const optStructure = getDirStructure('/opt');
-    // return new Response(JSON.stringify(optStructure), {
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    // });
     if (request.method == 'OPTIONS') {
       return new Response(null, {
         status: 204,
@@ -54,10 +57,13 @@ export default async function post(request: Request): Promise<Response> {
       return new Response('Method not allowed', {
         status: 405,
         headers: {
-          'Content-Type': 'text/plain'
-        }
+          'Content-Type': 'text/plain',
+        },
       });
     }
+    console.log('=== REQUEST DETAILS ===');
+    console.log('Headers:', Object.fromEntries(request.headers.entries()));
+    console.log('Method:', request.method);
 
     // Obtener headers requeridos
     const traceId = request.headers.get('x-b3-traceid');
@@ -70,23 +76,30 @@ export default async function post(request: Request): Promise<Response> {
       return new Response('Missing required headers: x-b3-traceid, x-b3-spanid, or authorization', {
         status: 400,
         headers: {
-          'Content-Type': 'text/plain'
-        }
+          'Content-Type': 'text/plain',
+        },
       });
     }
 
+    console.log('=== Validate Session Handler ===');
+    console.log('APP_ID:', process.env);
+    console.log('Auth Token (first 10 chars):', authToken?.substring(0, 10) + '...');
+
     // Validar el token de contexto
+    console.log('Calling validateContextToken...');
     const validation = (await validateContextToken(
       authToken,
-      process.env.APP_ID || '',
+      process.env.APP_ID || 'e288d60c-ca8d-4d94-8a0a-6730f3786ab3',
     )) as ValidationResponse;
+    console.log('validateContextToken response:', validation ? 'Token valid' : 'Token invalid');
 
     if (!validation) {
+      console.log('Token validation failed, returning 401');
       return new Response('Invalid context token', {
         status: 401,
         headers: {
-          'Content-Type': 'text/plain'
-        }
+          'Content-Type': 'text/plain',
+        },
       });
     }
 

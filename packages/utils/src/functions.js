@@ -51,16 +51,27 @@ export async function getExistingIssues(query, fields) {
     return data.issues;
 }
 export const validateContextToken = async (invocationToken, appId) => {
-    console.log('Parametros: ', invocationToken, appId);
+    console.log('=== validateContextToken v2 ===');
+    console.log('Input params:', { invocationToken: invocationToken?.substring(0, 10) + '...', appId });
     const jwksUrl = 'https://forge.cdn.prod.atlassian-dev.net/.well-known/jwks.json';
-    const JWKS = createRemoteJWKSet(new URL(jwksUrl));
+    console.log('JWKS URL:', jwksUrl);
     try {
-        console.log(`iniciando verificacion: ${invocationToken} - ${appId}`);
-        console.log(`JWKS: ${JSON.stringify(JWKS)}`);
+        console.log('Creating JWKS...');
+        const JWKS = createRemoteJWKSet(new URL(jwksUrl));
+        console.log('JWKS created successfully');
+        console.log('Verifying token...');
+        const audienceValue = `ari:cloud:ecosystem::app/${appId}`;
+        console.log('Expected audience:', audienceValue);
         const { payload } = await jwtVerify(invocationToken, JWKS, {
-            audience: `ari:cloud:ecosystem::app/${appId}`,
+            audience: audienceValue,
         });
-        console.log(`Payload: ${JSON.stringify(payload)}`);
+        console.log('Token verified successfully');
+        console.log('Payload received:', {
+            aud: payload.aud,
+            iss: payload.iss,
+            exp: payload.exp,
+            iat: payload.iat,
+        });
         // Mapear el payload a ValidationResponse
         const response = {
             app: payload.app,
@@ -76,8 +87,17 @@ export const validateContextToken = async (invocationToken, appId) => {
         return response;
     }
     catch (e) {
-        console.error(e);
-        return undefined;
+        if (e instanceof Error) {
+            console.error('=== validateContextToken Error ===');
+            console.error('Error type:', e.constructor.name);
+            console.error('Error message:', e.message);
+            if (e.stack)
+                console.error('Stack trace:', e.stack);
+            return undefined;
+        }
+        else {
+            throw e;
+        }
     }
 };
 ('use strict');

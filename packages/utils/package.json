@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "install:deps": "bun install",
-    "build": "bun build ./src/index.ts --outdir ./dist/utils --target node",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun && make build-UtilsLayer",
     "clean": "rm -rf dist"
   },
   "dependencies": {
