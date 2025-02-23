@@ -12,7 +12,7 @@ export default async function get(request) {
             accessKeyId: process.env.AWS_ACCESS_KEY_ID,
             secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
             region: process.env.AWS_REGION,
-            bucket: 'scarlet-operations-dev-scarlet-storage',
+            bucket: 'scarlet-operations-dev-storage',
         });
         const file = client.file('scarlet-template.xlsx');
         const downloadUrl = file.presign({

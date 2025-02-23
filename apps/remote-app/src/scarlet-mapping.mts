@@ -1,21 +1,39 @@
-import { scarlettMapping } from '/opt/utils/custom_fields';
-import { Invoice, Issue } from '/opt/utils/types';
+import {CsvRow, scarlettMapping} from '/opt/utils/custom_fields';
+import {Issue, OperationPayload} from '/opt/utils/types';
+import {JiraClient} from '/opt/utils/functions';
 
-export default function post(event: Request): Response {
-  const partialInvoice: Partial<Invoice> = event;
+export default async function post(event: Request): Promise<Response> {
+  console.log('Event:', event);
+  console.log('Event Payload:', await event.json());
+  // const {
+  //   operation,
+  //   forgeToken,
+  //   apiBaseUrl,
+  // }: {operation: OperationPayload; forgeToken: string; apiBaseUrl: string} = await event.json();
 
-  const issue: Issue = {
-    key: partialInvoice.key,
-    fields: {
-      project: { id: partialInvoice.project?.id ?? 0 },
-      summary: partialInvoice.summary,
-      issuetype: { id: 11871 }, 
-    }
-  };
+  // if (!operation || !forgeToken || !apiBaseUrl) {
+  //   return new Response(JSON.stringify('invalid event'), {status: 400});
+  // }
+  // if (!operation.method) {
+  //   console.log('Ticket Omitido');
+  //   return new Response('', {status: 204});
+  // }
 
-  for (const [cfField, mapFunction] of Object.entries(scarlettMapping)) {
-    (issue.fields as any)[cfField] = mapFunction(partialInvoice);
-  }
+  // const jiraClient = new JiraClient(forgeToken, apiBaseUrl);
+  // const method = operation.method;
 
-  return new Response(JSON.stringify(issue));
-};
+  // switch (operation.change.type) {
+  //   case 'create':
+  //   case 'update':
+  //     jiraClient.sendRequest(operation);
+  //     break;
+  //   case 'transition':
+  //     jiraClient.transitionIssue(operation);
+  //     break;
+  //   default:
+  //     console.log('Ticket Omitido');
+  //     return new Response('', {status: 204});
+  // }
+
+  return new Response(JSON.stringify('not implemented'));
+}

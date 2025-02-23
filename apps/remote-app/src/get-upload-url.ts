@@ -46,7 +46,7 @@ export default async function post(request: Request): Promise<Response> {
       accessKeyId: process.env.AWS_ACCESS_KEY_ID,
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
       region: process.env.AWS_REGION,
-      bucket: 'scarlet-operations-dev-scarlet-storage',
+      bucket: 'scarlet-operations-dev-storage',
     });
 
     const fileId = uuidv4();

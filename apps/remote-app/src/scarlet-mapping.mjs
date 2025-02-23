@@ -1,17 +1,31 @@
-import { scarlettMapping } from '/opt/utils/custom_fields';
-export default function post(event) {
-    const partialInvoice = event;
-    const issue = {
-        key: partialInvoice.key,
-        fields: {
-            project: { id: partialInvoice.project?.id ?? 0 },
-            summary: partialInvoice.summary,
-            issuetype: { id: 11871 },
-        }
-    };
-    for (const [cfField, mapFunction] of Object.entries(scarlettMapping)) {
-        issue.fields[cfField] = mapFunction(partialInvoice);
-    }
-    return new Response(JSON.stringify(issue));
+export default async function post(event) {
+    console.log('Event:', event);
+    console.log('Event Payload:', await event.json());
+    // const {
+    //   operation,
+    //   forgeToken,
+    //   apiBaseUrl,
+    // }: {operation: OperationPayload; forgeToken: string; apiBaseUrl: string} = await event.json();
+    // if (!operation || !forgeToken || !apiBaseUrl) {
+    //   return new Response(JSON.stringify('invalid event'), {status: 400});
+    // }
+    // if (!operation.method) {
+    //   console.log('Ticket Omitido');
+    //   return new Response('', {status: 204});
+    // }
+    // const jiraClient = new JiraClient(forgeToken, apiBaseUrl);
+    // const method = operation.method;
+    // switch (operation.change.type) {
+    //   case 'create':
+    //   case 'update':
+    //     jiraClient.sendRequest(operation);
+    //     break;
+    //   case 'transition':
+    //     jiraClient.transitionIssue(operation);
+    //     break;
+    //   default:
+    //     console.log('Ticket Omitido');
+    //     return new Response('', {status: 204});
+    // }
+    return new Response(JSON.stringify('not implemented'));
 }
-;

@@ -1,35 +1,9 @@
 import { JiraClient, validateContextToken } from '/opt/utils/index.js';
 import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
 const sfnClient = new SFNClient({});
-const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME ?? 'scarlet-operations-dev-scarlet-storage';
-// function getDirStructure(dir: string): any {
-//   const items = fs.readdirSync(dir);
-//   const result: Record<string, any> = {};
-//   for (const item of items) {
-//     const fullPath = path.join(dir, item);
-//     const stats = fs.statSync(fullPath);
-//     if (stats.isDirectory()) {
-//       result[item] = getDirStructure(fullPath);
-//     } else {
-//       result[item] = {
-//         size: stats.size,
-//         modified: stats.mtime,
-//         type: 'file',
-//       };
-//     }
-//   }
-//   return result;
-// }
-// export default async function post(request: Request): Promise<Response> {
-//   // Obtener la estructura del directorio /opt
-//   const optStructure = getDirStructure('/opt');
-//   console.log(optStructure);
-//   return new Response(JSON.stringify(optStructure), {
-//     headers: {
-//       'Content-Type': 'application/json',
-//     },
-//   });
-// }
+const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME ?? 'scarlet-operations-dev-storage';
+const STATE_MACHINE_ARN = process.env.STATE_MACHINE_ARN ??
+    'arn:aws:states:us-east-1:529202746267:stateMachine:scarlet-execution-machine';
 export default async function post(request) {
     try {
         if (request.method == 'OPTIONS') {
@@ -60,10 +34,8 @@ export default async function post(request) {
         const spanId = request.headers.get('x-b3-spanid');
         const authToken = request.headers.get('authorization')?.replace('Bearer ', '');
         const forgeOauthSystem = request.headers.get('x-forge-oauth-system');
-        const res = await request.json();
-        console.log(`Request body: ${JSON.stringify(res)}`);
-        const { fileId, projectId } = JSON.parse(res);
-        // const {fileId, projectId} = await request.json();
+        const { fileId, projectId } = await request.json();
+        console.log(`FileId: ${fileId}, ProjectId: ${projectId}`);
         if (!fileId || !projectId) {
             console.log(`Missing required parameters: fileId and projectId {fileId: ${fileId}, projectId: ${projectId}}`);
             return new Response('Missing required parameters: fileId and projectId', {
@@ -119,7 +91,7 @@ export default async function post(request) {
             apiBaseUrl,
         }));
         const message = new StartExecutionCommand({
-            stateMachineArn: 'arn:aws:states:us-east-1:529202746267:stateMachine:scarlet-execution-machine',
+            stateMachineArn: STATE_MACHINE_ARN,
             name: `scarlet-${fileId}-${new Date().getTime()}`,
             traceHeader: `${traceId}-${spanId}`,
             input: JSON.stringify({

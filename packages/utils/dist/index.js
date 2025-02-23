@@ -1378,11 +1378,11 @@ class JiraClient {
     };
     return fetch2(`${this.apiBaseUrl}${path}`, requestOptions);
   }
-  async requestTicketsJira(payload) {
-    const { method, key: issueKey, status } = payload;
+  async sendRequest(payload) {
+    const { method, issue, change } = payload;
     if (!method)
       return;
-    const jiraRoute = this.isEdit(method) ? `/rest/api/3/issue/${this.validateIssueKey(method, issueKey)}` : `/rest/api/3/issue`;
+    const jiraRoute = this.isEdit(method) ? `/rest/api/3/issue/${this.validateIssueKey(method, issue.key)}` : `/rest/api/3/issue`;
     const response = await this.fetchFromJira({
       path: jiraRoute,
       method,
@@ -1390,11 +1390,6 @@ class JiraClient {
     });
     if (!response.ok) {
       throw new Error(`Error al ${method === "POST" ? "crear" : "editar"} issue: ` + `${response.status} - ${await response.text()}`);
-    }
-    if (response.status !== 204) {
-      const data = await response.json();
-      await this.transitionIssue(payload);
-      return data;
     }
     return;
   }
@@ -1425,9 +1420,12 @@ class JiraClient {
     }
   }
   async transitionIssue(payload) {
-    const { status, key: issueKey } = payload;
-    if (!status || !issueKey) {
-      throw new Error("Status and issueKey are required for transition");
+    const {
+      change,
+      issue: { key: issueKey }
+    } = payload;
+    if (change.type !== "transition" || !change.transitionId || !issueKey) {
+      throw new Error("TransitionId and issueKey are required for transition");
     }
     const issues = await this.getExistingIssues(`key = ${issueKey}`, ["status"]);
     if (!issues.length) {
@@ -1437,20 +1435,19 @@ class JiraClient {
       throw new Error(`Status field not found for issue ${issueKey}`);
     }
     const actualStatus = issues[0].fields.status.name;
-    if (status.name !== actualStatus) {
-      const response = await this.fetchFromJira({
-        path: `/rest/api/3/issue/${issueKey}/transitions`,
-        method: "POST",
-        body: JSON.stringify({
-          transition: {
-            id: status.transitionId
-          }
-        })
-      });
-      if (!response.ok) {
-        throw new Error(`Error al transicionar issue: ${response.status} - ${await response.text()}`);
-      }
+    const response = await this.fetchFromJira({
+      path: `/rest/api/3/issue/${issueKey}/transitions`,
+      method: "POST",
+      body: JSON.stringify({
+        transition: {
+          id: change.transitionId
+        }
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`Error al transicionar issue: ${response.status} - ${await response.text()}`);
     }
+    return { success: true };
   }
 }
 async function validateContextToken(invocationToken, appId) {
@@ -5464,6 +5461,25 @@ var CF;
   CF2["scarlett_id"] = "customfield_19899";
   CF2["uuid"] = "customfield_18766";
 })(CF ||= {});
+var StatusName;
+((StatusName2) => {
+  StatusName2["EnProceso"] = "En proceso";
+  StatusName2["Done"] = "Done";
+  StatusName2["AprovacaoCompliance"] = "Aprova\xE7\xE3o Compliance";
+  StatusName2["EncursoFinops"] = "En curso FinOps";
+  StatusName2["Resolved"] = "Resolved";
+  StatusName2["Reopened"] = "Reopened";
+  StatusName2["Closed"] = "Closed";
+})(StatusName ||= {});
+var ValidStatusNames = {
+  EnProceso: "En proceso",
+  Done: "Done",
+  AprovacaoCompliance: "Aprova\xE7\xE3o Compliance",
+  EncursoFinops: "En curso FinOps",
+  Resolved: "Resolved",
+  Reopened: "Reopened",
+  Closed: "Closed"
+};
 var CsvRowHeaders;
 ((CsvRowHeaders2) => {
   CsvRowHeaders2["pais"] = "Pais";
@@ -5486,22 +5502,31 @@ var CsvRowHeaders;
   CsvRowHeaders2["subEstadoEnJira"] = "Sub - Estado en Jira";
 })(CsvRowHeaders ||= {});
 var scarlettMapping = {
-  ["customfield_19899" /* scarlett_id */]: (invoice) => [invoice.uuid || ""],
-  ["customfield_17707" /* pais */]: (invoice) => ({ value: invoice.pais || "" }),
-  ["customfield_19888" /* tipo_documento */]: (invoice) => invoice.tipo_documento || "",
-  ["customfield_19889" /* estado_validaciones */]: (invoice) => invoice.estado_validaciones || "",
-  ["customfield_14357" /* proveedor_id */]: (invoice) => invoice.proveedor_id || "",
-  ["customfield_19891" /* fecha_recepcion */]: (invoice) => parseAndFormatDate(invoice.fecha_recepcion || ""),
-  ["customfield_19892" /* asignacion_sap_sku */]: (invoice) => invoice.asignacion_sap_sku || "",
-  ["customfield_19894" /* estado_conciliacion */]: (invoice) => invoice.estado_conciliacion || "",
-  ["customfield_19895" /* estado_solicitudes */]: (invoice) => invoice.estado_solicitudes || "",
-  ["customfield_16985" /* orden_de_compra */]: (invoice) => invoice.orden_de_compra || "",
-  ["customfield_19896" /* fecha_emision */]: (invoice) => parseAndFormatDate(invoice.fecha_emision || ""),
-  ["customfield_17745" /* is */]: (invoice) => invoice.is || "",
-  ["customfield_19897" /* estado_de_envio */]: (invoice) => invoice.estado_de_envio || "",
-  ["customfield_19195" /* monto */]: (invoice) => parseInt(invoice.monto || "0"),
-  ["customfield_18766" /* uuid */]: (invoice) => [invoice.uuid || ""],
-  ["customfield_19898" /* estado_integracion_sap_final */]: (invoice) => invoice.estado_integracion_sap_final || ""
+  ["customfield_19899" /* scarlett_id */]: (row) => [row["N\xFAmero de documento" /* uuid */] || ""],
+  ["customfield_17707" /* pais */]: (row) => ({ value: row["Pais" /* pais */] || "" }),
+  ["customfield_19888" /* tipo_documento */]: (row) => row["Tipo de documento" /* documentType */] || "",
+  ["customfield_19889" /* estado_validaciones */]: (row) => row["Estado de validaciones" /* estadoDeValidaciones */] || "",
+  ["customfield_14357" /* proveedor_id */]: (row) => row["Proveedor ID" /* proveedorId */] || "",
+  ["customfield_19891" /* fecha_recepcion */]: (row) => parseAndFormatDate(row["Fecha de recepci\xF3n" /* fechaDeRecepcion */] || ""),
+  ["customfield_19892" /* asignacion_sap_sku */]: (row) => row["Asignaci\xF3n de SAP SKU" /* asignacionSapSku */] || "",
+  ["customfield_19894" /* estado_conciliacion */]: (row) => row["Estado de conciliaci\xF3n" /* estadoDeConciliacion */] || "",
+  ["customfield_19895" /* estado_solicitudes */]: (row) => row["Estado de las solicitudes" /* estadoDeLasSolicitudes */] || "",
+  ["customfield_16985" /* orden_de_compra */]: (row) => row["Orden de compra" /* ordenDeCompra */] || "",
+  ["customfield_19896" /* fecha_emision */]: (row) => parseAndFormatDate(row["Fecha de emisi\xF3n" /* fechaDeEmision */] || ""),
+  ["customfield_17745" /* is */]: (row) => row["N\xFAmero de env\xEDo" /* numeroDeEnvio */] || "",
+  ["customfield_19897" /* estado_de_envio */]: (row) => row["Estado de env\xEDo" /* estadoDeEnvio */] || "",
+  ["customfield_19195" /* monto */]: (row) => parseInt(row["Monto" /* monto */] || "0"),
+  ["customfield_18766" /* uuid */]: (row) => [row["N\xFAmero de documento" /* uuid */] || ""],
+  ["customfield_19898" /* estado_integracion_sap_final */]: (row) => row["Estado SAP" /* estadoIntegracionSapFinal */] || ""
+};
+var statusMapping = {
+  ["En proceso" /* EnProceso */]: 3,
+  ["Done" /* Done */]: 4,
+  ["Aprova\xE7\xE3o Compliance" /* AprovacaoCompliance */]: 1,
+  ["En curso FinOps" /* EncursoFinops */]: 5,
+  ["Resolved" /* Resolved */]: 6,
+  ["Reopened" /* Reopened */]: 7,
+  ["Closed" /* Closed */]: 8
 };
 function parseAndFormatDate(dateString, inputFormat = "dd-MM-yyyy", outputFormat = "yyyy-MM-dd") {
   const parsedDate = parse2(dateString, inputFormat, new Date);
@@ -5510,7 +5535,10 @@ function parseAndFormatDate(dateString, inputFormat = "dd-MM-yyyy", outputFormat
 var fechaFormateada = parseAndFormatDate("22-01-2025");
 export {
   validateContextToken,
+  statusMapping,
   scarlettMapping,
+  ValidStatusNames,
+  StatusName,
   JobStatus,
   JiraClient,
   CsvRowHeaders,

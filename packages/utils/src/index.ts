@@ -3,7 +3,6 @@ export {
   JobStatus,
   Appearance,
   type Job,
-  type Invoice,
   type Issue,
   type RequestPayload,
   type IssueOperationsFromCsvPayload,
@@ -21,4 +20,14 @@ export {JiraClient, validateContextToken} from './functions';
 export type {ValidationResponse} from './interfaces';
 
 // Re-exportar todo desde custom_fields.ts
-export {CF, CsvRowHeaders, type CsvRow, type Mapping, scarlettMapping} from './custom_fields';
+export {
+  CF,
+  CsvRowHeaders,
+  type CsvRow,
+  type CustomFieldMapping as Mapping,
+  scarlettMapping,
+  statusMapping,
+  StatusName,
+  ValidStatusType,
+  ValidStatusNames,
+} from './custom_fields';

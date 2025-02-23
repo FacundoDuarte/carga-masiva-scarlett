@@ -1,5 +1,5 @@
 import {parse, format} from 'date-fns';
-import {Invoice} from './types';
+
 export const enum CF {
   summary = 'summary',
   status = 'status',
@@ -22,6 +22,31 @@ export const enum CF {
   scarlett_id = 'customfield_19899',
   uuid = 'customfield_18766',
 }
+
+export const enum StatusName {
+  EnProceso = 'En proceso',
+  Done = 'Done',
+  AprovacaoCompliance = 'Aprovação Compliance',
+  EncursoFinops = 'En curso FinOps',
+  Resolved = 'Resolved',
+  Reopened = 'Reopened',
+  Closed = 'Closed',
+
+}
+
+// Objeto para validación en runtime
+export const ValidStatusNames = {
+  EnProceso: 'En proceso',
+  Done: 'Done',
+  AprovacaoCompliance: 'Aprovação Compliance',
+  EncursoFinops: 'En curso FinOps',
+  Resolved: 'Resolved',
+  Reopened: 'Reopened',
+  Closed: 'Closed',
+} as const;
+
+export type ValidStatusType = (typeof ValidStatusNames)[keyof typeof ValidStatusNames];
+
 export const enum CsvRowHeaders {
   pais = 'Pais',
   uuid = 'Número de documento',
@@ -42,53 +67,47 @@ export const enum CsvRowHeaders {
   estadoEnJira = 'Estado en Jira',
   subEstadoEnJira = 'Sub - Estado en Jira',
 }
-export type CsvRow = Record<CsvRowHeaders, string> & {
-  pais: string;
-  uuid: string;
-  documentType: string;
-  estadoDeValidaciones: string;
-  proveedor: string;
-  proveedorId: string;
-  fechaDeRecepcion: string;
-  asignacionSapSku: string;
-  estadoDeConciliacion: string;
-  estadoDeLasSolicitudes: string;
-  ordenDeCompra: string;
-  fechaDeEmision: string;
-  numeroDeEnvio: string;
-  estadoDeEnvio: string;
-  monto: string;
-  estadoIntegracionSapFinal: string;
-  estadoEnJira: string;
-  subEstadoEnJira: string;
+export type CsvRow = Record<CsvRowHeaders, string>;
+
+export const scarlettMapping: CustomFieldMapping = {
+  [CF.scarlett_id]: (row: Partial<CsvRow>) => [row[CsvRowHeaders.uuid] || ''],
+  [CF.pais]: (row: Partial<CsvRow>) => ({value: row[CsvRowHeaders.pais] || ''}),
+  [CF.tipo_documento]: (row: Partial<CsvRow>) => row[CsvRowHeaders.documentType] || '',
+  [CF.estado_validaciones]: (row: Partial<CsvRow>) => row[CsvRowHeaders.estadoDeValidaciones] || '',
+  [CF.proveedor_id]: (row: Partial<CsvRow>) => row[CsvRowHeaders.proveedorId] || '',
+  [CF.fecha_recepcion]: (row: Partial<CsvRow>) =>
+    parseAndFormatDate(row[CsvRowHeaders.fechaDeRecepcion] || ''),
+  [CF.asignacion_sap_sku]: (row: Partial<CsvRow>) => row[CsvRowHeaders.asignacionSapSku] || '',
+  [CF.estado_conciliacion]: (row: Partial<CsvRow>) => row[CsvRowHeaders.estadoDeConciliacion] || '',
+  [CF.estado_solicitudes]: (row: Partial<CsvRow>) =>
+    row[CsvRowHeaders.estadoDeLasSolicitudes] || '',
+  [CF.orden_de_compra]: (row: Partial<CsvRow>) => row[CsvRowHeaders.ordenDeCompra] || '',
+  [CF.fecha_emision]: (row: Partial<CsvRow>) =>
+    parseAndFormatDate(row[CsvRowHeaders.fechaDeEmision] || ''),
+  [CF.is]: (row: Partial<CsvRow>) => row[CsvRowHeaders.numeroDeEnvio] || '',
+  [CF.estado_de_envio]: (row: Partial<CsvRow>) => row[CsvRowHeaders.estadoDeEnvio] || '',
+  [CF.monto]: (row: Partial<CsvRow>) => parseInt(row[CsvRowHeaders.monto] || '0'),
+  [CF.uuid]: (row: Partial<CsvRow>) => [row[CsvRowHeaders.uuid] || ''],
+  [CF.estado_integracion_sap_final]: (row: Partial<CsvRow>) =>
+    row[CsvRowHeaders.estadoIntegracionSapFinal] || '',
 };
 
-export const scarlettMapping: Mapping = {
-  [CF.scarlett_id]: (invoice: Partial<Invoice>) => [invoice.uuid || ''],
-  [CF.pais]: (invoice: Partial<Invoice>) => ({value: invoice.pais || ''}),
-  [CF.tipo_documento]: (invoice: Partial<Invoice>) => invoice.tipo_documento || '',
-  [CF.estado_validaciones]: (invoice: Partial<Invoice>) => invoice.estado_validaciones || '',
-  [CF.proveedor_id]: (invoice: Partial<Invoice>) => invoice.proveedor_id || '',
-  [CF.fecha_recepcion]: (invoice: Partial<Invoice>) =>
-    parseAndFormatDate(invoice.fecha_recepcion || ''),
-  [CF.asignacion_sap_sku]: (invoice: Partial<Invoice>) => invoice.asignacion_sap_sku || '',
-  [CF.estado_conciliacion]: (invoice: Partial<Invoice>) => invoice.estado_conciliacion || '',
-  [CF.estado_solicitudes]: (invoice: Partial<Invoice>) => invoice.estado_solicitudes || '',
-  [CF.orden_de_compra]: (invoice: Partial<Invoice>) => invoice.orden_de_compra || '',
-  [CF.fecha_emision]: (invoice: Partial<Invoice>) =>
-    parseAndFormatDate(invoice.fecha_emision || ''),
-  [CF.is]: (invoice: Partial<Invoice>) => invoice.is || '',
-  [CF.estado_de_envio]: (invoice: Partial<Invoice>) => invoice.estado_de_envio || '',
-  [CF.monto]: (invoice: Partial<Invoice>) => parseInt(invoice.monto || '0'),
-  [CF.uuid]: (invoice: Partial<Invoice>) => [invoice.uuid || ''],
-  [CF.estado_integracion_sap_final]: (invoice: Partial<Invoice>) =>
-    invoice.estado_integracion_sap_final || '',
+export const statusMapping: TransitionMapping = {
+  [StatusName.EnProceso]: 61,
+  [StatusName.Done]: 81,
+  [StatusName.AprovacaoCompliance]: 71,
+  [StatusName.EncursoFinops]: 51,
+  [StatusName.Resolved]: 31,
+  [StatusName.Reopened]: 41,
+  [StatusName.Closed]: 21,
 };
 
-export type Mapping = {
-  [x in CF]?: (
-    invoice: Partial<Invoice>,
-  ) => string | string[] | number | {id: number} | {value: string};
+export type TransitionMapping = {
+  [key in StatusName]: number;
+};
+
+export type CustomFieldMapping = {
+  [x in CF]?: (row: Partial<CsvRow>) => string | string[] | number | {id: number} | {value: string};
 };
 
 /**

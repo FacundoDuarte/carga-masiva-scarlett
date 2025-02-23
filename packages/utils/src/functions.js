@@ -42,12 +42,12 @@ export class JiraClient {
         };
         return fetch(`${this.apiBaseUrl}${path}`, requestOptions);
     }
-    async requestTicketsJira(payload) {
-        const { method, key: issueKey, status } = payload;
+    async sendRequest(payload) {
+        const { method, issue, change } = payload;
         if (!method)
             return;
         const jiraRoute = this.isEdit(method)
-            ? `/rest/api/3/issue/${this.validateIssueKey(method, issueKey)}`
+            ? `/rest/api/3/issue/${this.validateIssueKey(method, issue.key)}`
             : `/rest/api/3/issue`;
         const response = await this.fetchFromJira({
             path: jiraRoute,
@@ -58,11 +58,11 @@ export class JiraClient {
             throw new Error(`Error al ${method === 'POST' ? 'crear' : 'editar'} issue: ` +
                 `${response.status} - ${await response.text()}`);
         }
-        if (response.status !== 204) {
-            const data = await response.json();
-            await this.transitionIssue(payload);
-            return data;
-        }
+        // if (response.status !== 204) {
+        //   const data = await response.json();
+        //   await this.transitionIssue(payload);
+        //   return data;
+        // }
         return;
     }
     async getExistingIssues(query, fields) {
@@ -93,9 +93,9 @@ export class JiraClient {
         }
     }
     async transitionIssue(payload) {
-        const { status, key: issueKey } = payload;
-        if (!status || !issueKey) {
-            throw new Error('Status and issueKey are required for transition');
+        const { change, issue: { key: issueKey }, } = payload;
+        if (change.type !== 'transition' || !change.transitionId || !issueKey) {
+            throw new Error('TransitionId and issueKey are required for transition');
         }
         // Si el estado que recibimos en el CSV es diferente al estado actual del ticket, entonces lo transicionamos
         const issues = await this.getExistingIssues(`key = ${issueKey}`, ['status']);
@@ -106,20 +106,19 @@ export class JiraClient {
             throw new Error(`Status field not found for issue ${issueKey}`);
         }
         const actualStatus = issues[0].fields.status.name;
-        if (status.name !== actualStatus) {
-            const response = await this.fetchFromJira({
-                path: `/rest/api/3/issue/${issueKey}/transitions`,
-                method: 'POST',
-                body: JSON.stringify({
-                    transition: {
-                        id: status.transitionId,
-                    },
-                }),
-            });
-            if (!response.ok) {
-                throw new Error(`Error al transicionar issue: ${response.status} - ${await response.text()}`);
-            }
+        const response = await this.fetchFromJira({
+            path: `/rest/api/3/issue/${issueKey}/transitions`,
+            method: 'POST',
+            body: JSON.stringify({
+                transition: {
+                    id: change.transitionId,
+                },
+            }),
+        });
+        if (!response.ok) {
+            throw new Error(`Error al transicionar issue: ${response.status} - ${await response.text()}`);
         }
+        return { success: true };
     }
 }
 export async function validateContextToken(invocationToken, appId) {

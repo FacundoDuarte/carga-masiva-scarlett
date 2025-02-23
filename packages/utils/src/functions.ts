@@ -1,7 +1,7 @@
-import {Invoice, Issue} from './types';
+import {Issue, OperationPayload} from './types.js';
 import {SignJWT, jwtVerify, createRemoteJWKSet} from 'jose';
 import fetch from 'node-fetch';
-import {ValidationResponse} from './interfaces';
+import {ValidationResponse} from './interfaces.js';
 
 const QUERY_MAX_RESULTS: number = 5000;
 
@@ -63,12 +63,12 @@ export class JiraClient {
     return fetch(`${this.apiBaseUrl}${path}`, requestOptions);
   }
 
-  async requestTicketsJira(payload: Partial<Invoice>) {
-    const {method, key: issueKey, status} = payload;
+  async sendRequest(payload: OperationPayload) {
+    const {method, issue, change} = payload;
     if (!method) return;
 
     const jiraRoute = this.isEdit(method)
-      ? `/rest/api/3/issue/${this.validateIssueKey(method, issueKey)!}`
+      ? `/rest/api/3/issue/${this.validateIssueKey(method, issue.key)!}`
       : `/rest/api/3/issue`;
 
     const response = await this.fetchFromJira({
@@ -84,11 +84,11 @@ export class JiraClient {
       );
     }
 
-    if (response.status !== 204) {
-      const data = await response.json();
-      await this.transitionIssue(payload);
-      return data;
-    }
+    // if (response.status !== 204) {
+    //   const data = await response.json();
+    //   await this.transitionIssue(payload);
+    //   return data;
+    // }
 
     return;
   }
@@ -125,11 +125,14 @@ export class JiraClient {
     }
   }
 
-  private async transitionIssue(payload: Partial<Invoice>) {
-    const {status, key: issueKey} = payload;
+  async transitionIssue(payload: OperationPayload) {
+    const {
+      change,
+      issue: {key: issueKey},
+    } = payload;
 
-    if (!status || !issueKey) {
-      throw new Error('Status and issueKey are required for transition');
+    if (change.type !== 'transition' || !change.transitionId || !issueKey) {
+      throw new Error('TransitionId and issueKey are required for transition');
     }
 
     // Si el estado que recibimos en el CSV es diferente al estado actual del ticket, entonces lo transicionamos
@@ -144,13 +147,13 @@ export class JiraClient {
 
     const actualStatus = issues[0].fields.status.name;
 
-    if (status.name !== actualStatus) {
+    
       const response = await this.fetchFromJira({
         path: `/rest/api/3/issue/${issueKey}/transitions`,
         method: 'POST',
         body: JSON.stringify({
           transition: {
-            id: status.transitionId,
+            id: change.transitionId,
           },
         }),
       });
@@ -159,8 +162,9 @@ export class JiraClient {
         throw new Error(
           `Error al transicionar issue: ${response.status} - ${await response.text()}`,
         );
-      }
+     
     }
+    return {success: true};
   }
 }
 export async function validateContextToken(

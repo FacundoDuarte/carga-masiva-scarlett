@@ -21,7 +21,7 @@ remotes:
       - compute
       - fetch
   - key: execution-remote
-    baseUrl: https://e6eutuy033.execute-api.us-east-1.amazonaws.com/Prod/
+    baseUrl: https://mqj3yvzhxl.execute-api.us-east-1.amazonaws.com/Prod/
     operations:
       - compute
       - fetch
@@ -37,13 +37,13 @@ permissions:
   external:
     fetch:
       backend:
-        - https://e6eutuy033.execute-api.us-east-1.amazonaws.com/Prod/
+        - https://mqj3yvzhxl.execute-api.us-east-1.amazonaws.com/Prod/
         - atl-paas.net
         - s3.us-east-1.amazonaws.com
       client:
         - remote: iss-rem-bucket
         - remote: execution-remote
-        - https://e6eutuy033.execute-api.us-east-1.amazonaws.com/Prod/
+        - https://mqj3yvzhxl.execute-api.us-east-1.amazonaws.com/Prod/
         - issue-reminder-app-dev-issrem-529202746267.s3.amazonaws.com
         - s3.us-east-1.amazonaws.com
         - atl-paas.net

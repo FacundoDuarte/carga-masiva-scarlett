@@ -1,8 +1,19 @@
-import {JiraClient, CF, CsvRow, CsvRowHeaders, Invoice} from '/opt/utils/index.js';
+import {
+  statusMapping,
+  StatusName,
+  ValidStatusType,
+  ValidStatusNames,
+  JiraClient,
+  CF,
+  CsvRow,
+  CsvRowHeaders,
+  Issue,
+  scarlettMapping,
+  OperationPayload,
+} from '/opt/utils/index.js';
 
-interface RequestPayload {
-  Items: CsvRowHeaders[];
-}
+
+const ISSUE_TYPE_ID = 11871;
 
 export default async function post(request: Request): Promise<Response> {
   try {
@@ -48,24 +59,24 @@ export default async function post(request: Request): Promise<Response> {
         subEstadoEnJira,
       ] = Object.values(row)[0].split(';');
       return {
-        pais,
-        uuid,
-        documentType,
-        estadoDeValidaciones,
-        proveedor,
-        proveedorId,
-        fechaDeRecepcion,
-        asignacionSapSku,
-        estadoDeConciliacion,
-        estadoDeLasSolicitudes,
-        ordenDeCompra,
-        fechaDeEmision,
-        numeroDeEnvio,
-        estadoDeEnvio,
-        monto,
-        estadoIntegracionSapFinal: estadoSap,
-        estadoEnJira,
-        subEstadoEnJira,
+        [CsvRowHeaders.pais]: pais,
+        [CsvRowHeaders.uuid]: uuid,
+        [CsvRowHeaders.documentType]: documentType,
+        [CsvRowHeaders.estadoDeValidaciones]: estadoDeValidaciones,
+        [CsvRowHeaders.proveedor]: proveedor,
+        [CsvRowHeaders.proveedorId]: proveedorId,
+        [CsvRowHeaders.fechaDeRecepcion]: fechaDeRecepcion,
+        [CsvRowHeaders.asignacionSapSku]: asignacionSapSku,
+        [CsvRowHeaders.estadoDeConciliacion]: estadoDeConciliacion,
+        [CsvRowHeaders.estadoDeLasSolicitudes]: estadoDeLasSolicitudes,
+        [CsvRowHeaders.ordenDeCompra]: ordenDeCompra,
+        [CsvRowHeaders.fechaDeEmision]: fechaDeEmision,
+        [CsvRowHeaders.numeroDeEnvio]: numeroDeEnvio,
+        [CsvRowHeaders.estadoDeEnvio]: estadoDeEnvio,
+        [CsvRowHeaders.monto]: monto,
+        [CsvRowHeaders.estadoIntegracionSapFinal]: estadoSap,
+        [CsvRowHeaders.estadoEnJira]: estadoEnJira,
+        [CsvRowHeaders.subEstadoEnJira]: subEstadoEnJira,
       };
     }) as CsvRow[];
 
@@ -82,32 +93,69 @@ export default async function post(request: Request): Promise<Response> {
       return new Response('Invalid request body: Items array is required', {status: 400});
     }
 
-    // const parsedData: CsvRow[] = rows;
-    // Remover las filas que tienen '0' en la columna 'uuid'
     rows = rows.filter((row: Record<CsvRowHeaders, string>) => row[CsvRowHeaders.uuid] !== '0');
     if (!rows.length) {
       console.error('All rows have uuid 0');
       return new Response('All rows have uuid 0', {status: 200});
     }
-    const scarlettIds: string[] = rows.map((row) => row.uuid as string);
+    const scarlettIds: string[] = rows.map((row) => row[CsvRowHeaders.uuid] as string);
 
     console.log(`Cantidad de scarlett Ids: ${scarlettIds.length}`, scarlettIds);
 
     const client = new JiraClient(forgeToken, apiBaseUrl);
     const existingIssues = await client.getExistingIssues(
       `"Scarlett ID[Labels]" in (${scarlettIds.join(', ')})`,
-      [CF.scarlett_id, CF.summary],
+      [CF.scarlett_id, CF.summary, CF.status],
     );
     console.log('Existing issues:', existingIssues);
 
+    const operations: OperationPayload[] = [];
+    for (const row of rows) {
+      const existingIssue = existingIssues.find(
+        (issue) => issue.fields[CF.scarlett_id] === row[CsvRowHeaders.uuid],
+      );
+      const {
+        key,
+        fields: {[CF.summary]: summary, [CF.status]: status},
+      } = existingIssue ?? {
+        key: undefined,
+        fields: {summary: row[CsvRowHeaders.uuid], status: {name: StatusName.AprovacaoCompliance}},
+      };
+      // Create base issue structure
+      const issue: Partial<Issue> = {
+        key,
+        fields: {
+          project: {id: projectId},
+          summary,
+          issuetype: {id: ISSUE_TYPE_ID},
+        },
+      };
+      for (const [cfField, mapFunction] of Object.entries(scarlettMapping)) {
+        (issue.fields as any)[cfField] = mapFunction(row);
+      }
+      operations.push({
+        issue,
+        method: key ? 'PUT' : 'POST',
+        change: {
+          type: key ? 'update' : 'create',
+        },
+      });
+      // Check if a transition is needed
+      let transitionId = checkTransitionAvailable(status, row[CsvRowHeaders.estadoEnJira]);
+      if (transitionId) {
+        operations.push({
+          issue,
+          method: 'POST',
+          change: {
+            type: 'transition',
+            transitionId,
+          },
+        });
+      }
+    }
+
     return new Response(
-      JSON.stringify({
-        systemToken: 'abc123',
-        sessionValid: true,
-        existingIssues,
-        rows,
-        method: 'OMIT',
-      }),
+      JSON.stringify([...operations.map((operation) => ({operation, forgeToken, apiBaseUrl}))]),
       {
         headers: {
           'Content-Type': 'application/json',
@@ -118,4 +166,20 @@ export default async function post(request: Request): Promise<Response> {
     console.error('Error processing request:', error);
     return new Response(`Error processing request: ${error}`, {status: 500});
   }
+}
+
+function checkTransitionAvailable(
+  currentStatus: {name: string; id?: string} | undefined,
+  statusFromCsv: string,
+): number | undefined {
+  if (!currentStatus || currentStatus.name == statusFromCsv) return;
+  if (!isValidStatus(currentStatus.name) || !isValidStatus(statusFromCsv)) {
+    throw new Error(`Status ${currentStatus.name} or ${statusFromCsv} is not valid`);
+  }
+  return statusMapping[statusFromCsv] ?? undefined;
+}
+
+//Necesito crearme en typescript una función auxiliar que reciba un string y me permita validar que es parte del enumerado StatusName
+function isValidStatus(status: string): status is ValidStatusType {
+  return Object.values(ValidStatusNames).includes(status as ValidStatusType);
 }

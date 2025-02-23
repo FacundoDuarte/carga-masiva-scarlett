@@ -32,48 +32,67 @@
 								"BackoffRate": 2
 							}
 						],
-						"Next": "Choice"
+						"Next": "Map"
 					},
-					"Choice": {
-						"Type": "Choice",
-						"Choices": [
+					"Map": {
+						"Type": "Map",
+						"ItemProcessor": {
+							"ProcessorConfig": {
+								"Mode": "INLINE"
+							},
+							"StartAt": "Operations Execution",
+							"States": {
+								"Operations Execution": {
+									"Type": "Task",
+									"Resource": "arn:aws:states:::lambda:invoke",
+									"OutputPath": "$.Payload",
+									"Parameters": {
+										"Payload.$": "$",
+										"FunctionName": "${ScarletMappingFunction}"
+									},
+									"Retry": [
+										{
+											"ErrorEquals": [
+												"Lambda.ServiceException",
+												"Lambda.AWSLambdaException",
+												"Lambda.SdkClientException",
+												"Lambda.TooManyRequestsException"
+											],
+											"IntervalSeconds": 1,
+											"MaxAttempts": 3,
+											"BackoffRate": 2,
+											"JitterStrategy": "FULL"
+										}
+									],
+									"Next": "SQS SendMessage"
+								},
+								"SQS SendMessage": {
+									"Type": "Task",
+									"Resource": "arn:aws:states:::sqs:sendMessage",
+									"Parameters": {
+										"QueueUrl": "${ScarletExecutionQueue}",
+										"MessageBody.$": "$"
+									},
+									"End": true
+								}
+							}
+						},
+						"End": true,
+						"ToleratedFailurePercentage": 50,
+						"Retry": [
 							{
-								"Variable": "$.Payload.method",
-								"StringEquals": "OMIT",
-								"Next": "Store Operation Result: Omitted"
+								"ErrorEquals": [
+									"Lambda.ServiceException",
+									"Lambda.AWSLambdaException",
+									"Lambda.SdkClientException",
+									"Lambda.TooManyRequestsException"
+								],
+								"BackoffRate": 2,
+								"IntervalSeconds": 5,
+								"MaxAttempts": 3,
+								"MaxDelaySeconds": 60
 							}
-						],
-						"Default": "ScarletMapping"
-					},
-					"Store Operation Result: Omitted": {
-						"Type": "Task",
-						"Resource": "arn:aws:states:::lambda:invoke",
-						"Parameters": {
-							"FunctionName": "${AddOrderFunction}",
-							"Payload": {
-								"method": "OMIT",
-								"issueKey.$": "$.issueKey"
-							}
-						},
-						"End": true
-					},
-					"ScarletMapping": {
-						"Type": "Task",
-						"Resource": "arn:aws:states:::lambda:invoke",
-						"Parameters": {
-							"FunctionName": "${ScarletMappingFunction}",
-							"Payload.$": "$"
-						},
-						"Next": "Operations Queue"
-					},
-					"Operations Queue": {
-						"Type": "Task",
-						"Resource": "arn:aws:states:::sqs:sendMessage",
-						"Parameters": {
-							"QueueUrl": "${OperationQueue}",
-							"MessageBody.$": "$"
-						},
-						"End": true
+						]
 					}
 				}
 			},

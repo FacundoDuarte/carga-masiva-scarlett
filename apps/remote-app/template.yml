@@ -26,7 +26,7 @@ Resources:
 
   ScarletExecutionQueue:
     Type: AWS::SQS::Queue
-    DeletionPolicy: Retain
+    DeletionPolicy: Delete
     UpdateReplacePolicy: Retain
     Properties:
       QueueName: !Sub ${AWS::StackName}-execution-queue
@@ -38,7 +38,7 @@ Resources:
 
   ScarletExecutionDLQ:
     Type: AWS::SQS::Queue
-    DeletionPolicy: Retain
+    DeletionPolicy: Delete
     UpdateReplacePolicy: Retain
     Properties:
       QueueName: !Sub ${AWS::StackName}-execution-dlq
@@ -47,14 +47,26 @@ Resources:
   ScarletStorageBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
+    UpdateReplacePolicy: Retain
     Properties:
-      BucketName: !Sub ${AWS::StackName}-scarlet-storage
+      BucketName: !Sub ${AWS::StackName}-storage
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - HEAD
+            AllowedOrigins:
+              - '*'
+            AllowedHeaders:
+              - '*'
       LifecycleConfiguration:
         Rules:
           - Id: DeleteOldFiles
             Status: Enabled
             ExpirationInDays: 30
+
   Api:
     Type: AWS::Serverless::Api
     Properties:
@@ -81,7 +93,7 @@ Resources:
                 '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '''*'''
+                allowOrigin: '*'
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -104,7 +116,7 @@ Resources:
                 '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '''*'''
+                allowOrigin: '*'
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -127,7 +139,7 @@ Resources:
                 '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '''*'''
+                allowOrigin: '*'
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -150,7 +162,7 @@ Resources:
                 '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '''*'''
+                allowOrigin: '*'
                 allowMethods:
                   - GET
                   - OPTIONS
@@ -181,7 +193,7 @@ Resources:
               Action:
                 - s3:PutObject
                 - s3:GetObject
-              Resource: !Sub arn:aws:s3:::${AWS::StackName}-scarlet-storage/*
+              Resource: !Sub arn:aws:s3:::${AWS::StackName}-storage/*
             - Effect: Allow
               Action:
                 - states:StartExecution
@@ -214,13 +226,6 @@ Resources:
           Path: /validate-session
           Method: POST
           RestApiId: !Ref Api
-  OperationsQueue:
-    Type: AWS::SQS::Queue
-    UpdateReplacePolicy: Delete
-    DeletionPolicy: Delete
-    Properties:
-      QueueName: scarlet-operations-queue
-      MessageRetentionPeriod: 1209600 # 14 días en segundos
   ScarletMappingFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -281,58 +286,6 @@ Resources:
         - AWSLambdaBasicExecutionRole
         - S3CrudPolicy:
             BucketName: !Ref ScarletStorageBucket
-  SaveStorage:
-    Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        EntryPoints:
-          - save-storage.mts
-        Bundle: true
-        Minify: true
-        Format: esm
-        Platform: node
-        Target: esnext
-        External:
-          - '@aws-sdk/*'
-          - aws-sdk
-          - '@forge/api'
-          - date-fns
-          - jose
-          - uuid
-          - bun
-        TreeShaking: true
-        Sourcemap: false
-
-    Properties:
-      Handler: save-storage.handler
-      CodeUri: ./src
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - S3CrudPolicy:
-            BucketName: !Ref ScarletStorageBucket
-      Events:
-        ApiGETexecutionid:
-          Type: Api
-          Properties:
-            Path: /execution/{id}
-            Method: GET
-            RestApiId: !Ref Api
-  ExecutionPipe:
-    Type: AWS::Pipes::Pipe
-    DependsOn: []
-    Properties:
-      RoleArn: !GetAtt StateMachineExecutionRole.Arn
-      Name: scarlet-execution-pipe
-      DesiredState: RUNNING
-      Source: !GetAtt ScarletExecutionQueue.Arn
-      SourceParameters:
-        SqsQueueParameters:
-          BatchSize: 1
-      TargetParameters:
-        StepFunctionStateMachineParameters:
-          InvocationType: FIRE_AND_FORGET
-      Target: !GetAtt StateMachine.Arn
   # Máquina de estado (Step Functions) definida en un archivo JSON externo
   StateMachine:
     Type: AWS::Serverless::StateMachine
@@ -340,10 +293,7 @@ Resources:
       DefinitionSubstitutions:
         ScarletMappingFunction: !GetAtt ScarletMappingFunction.Arn
         GetExistingIssuesFunction: !GetAtt GetExistingIssuesFunction.Arn
-        SaveStorage: !GetAtt SaveStorage.Arn
-        OperationsQueue: !GetAtt OperationsQueue.Arn
-        AddOrderFunction: !Ref AWS::NoValue
-        OperationQueue: !Ref AWS::NoValue
+        ScarletExecutionQueue: !Ref ScarletExecutionQueue
       Role: !GetAtt StateMachineExecutionRole.Arn
       Name: scarlet-execution-machine
       DefinitionUri: statemachine.json
@@ -381,8 +331,7 @@ Resources:
                   - s3:PutObject
                   - s3:GetObject
                 Resource:
-                  - !Sub arn:aws:s3:::scarlet-meli-dev/*
-                  - !Sub arn:aws:s3:::${AWS::StackName}-scarlet-storage/*
+                  - !Sub ${ScarletStorageBucket.Arn}/*
   GetUploadUrl:
     Type: AWS::Serverless::Function
     Properties:
@@ -401,7 +350,9 @@ Resources:
               Action:
                 - s3:PutObject
                 - s3:GetObject
-              Resource: !Sub arn:aws:s3:::${AWS::StackName}-scarlet-storage/*
+              Resource:
+                - !Sub ${ScarletStorageBucket.Arn}/*
+
       Events:
         ApiPOSTgetuploadurl:
           Type: Api
