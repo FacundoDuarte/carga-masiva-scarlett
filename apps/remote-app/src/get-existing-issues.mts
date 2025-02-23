@@ -1,4 +1,4 @@
-import {JiraClient, CF, CsvRow, CsvRowHeaders} from '/opt/utils/index.js';
+import {JiraClient, CF, CsvRow, CsvRowHeaders, Invoice} from '/opt/utils/index.js';
 
 interface RequestPayload {
   Items: CsvRowHeaders[];
@@ -18,27 +18,82 @@ export default async function post(request: Request): Promise<Response> {
     // Parse request body
     const payload = await request.json();
     console.log('Request body:', payload);
-    if (!payload.token || payload.token === '') {
+    const {
+      event: {
+        Items: rowsRaw,
+        BatchInput: {executionId, projectId, apiBaseUrl, forgeToken},
+      },
+    } = payload;
+
+    let rows = rowsRaw.map((row: Record<string, string>) => {
+      const [
+        pais,
+        uuid,
+        documentType,
+        estadoDeValidaciones,
+        proveedor,
+        proveedorId,
+        fechaDeRecepcion,
+        asignacionSapSku,
+        estadoIntegracionSapFinal,
+        estadoDeConciliacion,
+        estadoDeLasSolicitudes,
+        ordenDeCompra,
+        fechaDeEmision,
+        numeroDeEnvio,
+        estadoDeEnvio,
+        monto,
+        estadoSap,
+        estadoEnJira,
+        subEstadoEnJira,
+      ] = Object.values(row)[0].split(';');
+      return {
+        pais,
+        uuid,
+        documentType,
+        estadoDeValidaciones,
+        proveedor,
+        proveedorId,
+        fechaDeRecepcion,
+        asignacionSapSku,
+        estadoDeConciliacion,
+        estadoDeLasSolicitudes,
+        ordenDeCompra,
+        fechaDeEmision,
+        numeroDeEnvio,
+        estadoDeEnvio,
+        monto,
+        estadoIntegracionSapFinal: estadoSap,
+        estadoEnJira,
+        subEstadoEnJira,
+      };
+    }) as CsvRow[];
+
+    console.log('Rows:', rows);
+    if (!forgeToken || forgeToken === '') {
+      console.error('Authorization header is required');
       return new Response('Authorization header is required', {status: 400});
     }
-    const client = new JiraClient(payload.token, payload.apiBaseUrl);
-    const responseBody = payload as {Items: unknown[]};
-    if (!responseBody.Items || !Array.isArray(responseBody.Items)) {
+    if (!rows || !Array.isArray(rows)) {
+      console.error(
+        'Invalid request body: Items array is required',
+        `Items: ${rows}, Items type: ${typeof rows}`,
+      );
       return new Response('Invalid request body: Items array is required', {status: 400});
     }
 
-    const parsedData = responseBody.Items as Record<CsvRowHeaders, string>[];
+    // const parsedData: CsvRow[] = rows;
     // Remover las filas que tienen '0' en la columna 'uuid'
-    const filteredData = parsedData.filter(
-      (row: Record<CsvRowHeaders, string>) => row[CsvRowHeaders.uuid] !== '0',
-    );
-    if (!filteredData.length) {
+    rows = rows.filter((row: Record<CsvRowHeaders, string>) => row[CsvRowHeaders.uuid] !== '0');
+    if (!rows.length) {
+      console.error('All rows have uuid 0');
       return new Response('All rows have uuid 0', {status: 200});
     }
-    const scarlettIds: string[] = filteredData.map((row) => row[CsvRowHeaders.uuid] as string);
+    const scarlettIds: string[] = rows.map((row) => row.uuid as string);
 
     console.log(`Cantidad de scarlett Ids: ${scarlettIds.length}`, scarlettIds);
 
+    const client = new JiraClient(forgeToken, apiBaseUrl);
     const existingIssues = await client.getExistingIssues(
       `"Scarlett ID[Labels]" in (${scarlettIds.join(', ')})`,
       [CF.scarlett_id, CF.summary],
@@ -50,7 +105,7 @@ export default async function post(request: Request): Promise<Response> {
         systemToken: 'abc123',
         sessionValid: true,
         existingIssues,
-        filteredData,
+        rows,
         method: 'OMIT',
       }),
       {

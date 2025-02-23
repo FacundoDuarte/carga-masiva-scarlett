@@ -8,7 +8,7 @@ const QUERY_MAX_RESULTS: number = 5000;
 interface FetchFromJiraParams {
   path: string;
   method: string;
-  body?: string | object;
+  body?: string;
 }
 
 export class JiraClient {
@@ -45,18 +45,22 @@ export class JiraClient {
   }
 
   private async fetchFromJira({path, method, body}: FetchFromJiraParams) {
-    const headers: Record<string, string> = {
+    const headers = {
       Accept: 'application/json',
       Authorization: `Bearer ${this.token}`,
+      'Content-Type': 'application/json',
     };
-    if (typeof body === 'string') {
-      headers['Content-Type'] = 'application/json';
-    }
-    return await fetch(`${this.apiBaseUrl}/rest/api${path}`, {
+    console.log(
+      `Fetching from Jira with params: ${JSON.stringify(
+        headers,
+      )}, method: ${method}, body: ${JSON.stringify(body)}`,
+    );
+    const requestOptions = {
       headers,
       method,
-      body: method === 'POST' ? JSON.stringify(body) : undefined,
-    });
+      body,
+    } as const;
+    return fetch(`${this.apiBaseUrl}${path}`, requestOptions);
   }
 
   async requestTicketsJira(payload: Partial<Invoice>) {
@@ -70,7 +74,7 @@ export class JiraClient {
     const response = await this.fetchFromJira({
       path: jiraRoute,
       method: method,
-      body: payload,
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -90,19 +94,35 @@ export class JiraClient {
   }
 
   async getExistingIssues(query: string, fields: string[]): Promise<Issue[]> {
-    const response = await this.fetchFromJira({
-      path: `/rest/api/3/search`,
-      method: 'POST',
-      body: {
-        fields: fields,
-        jql: query,
-        maxResults: QUERY_MAX_RESULTS,
-      },
-    });
-    if (!response.ok) throw new Error(`Error Http: ${await response.text()}`);
-    const data = await response.json();
-    console.log(`GET EXISTING ISSUES RETURN ${JSON.stringify(data)}`);
-    return data.issues;
+    console.log(
+      `query: ${query}, fields: ${fields.join(
+        ',',
+      )}, maxResults: ${QUERY_MAX_RESULTS}, apiBaseUrl: ${this.apiBaseUrl}, token: ${this.token}`,
+    );
+    try {
+      const response = await this.fetchFromJira({
+        path: `/rest/api/3/search/jql`,
+        method: 'POST',
+        body: JSON.stringify({
+          fields,
+          jql: query,
+          maxResults: QUERY_MAX_RESULTS,
+        }),
+      });
+      if (response.status !== 200) {
+        console.log(`Error Http: ${response.status} - ${response.status !== 200}`);
+        let text = await response.text();
+        console.error(`Error Http: ${text}`);
+        throw new Error(`Error Http: ${text}`);
+      }
+
+      const data = await response.json();
+      console.log(`GET EXISTING ISSUES RETURN ${JSON.stringify(data)}`);
+      return data.issues;
+    } catch (error) {
+      console.log(`Error getting existing issues: ${error}`);
+      throw error;
+    }
   }
 
   private async transitionIssue(payload: Partial<Invoice>) {
@@ -128,11 +148,11 @@ export class JiraClient {
       const response = await this.fetchFromJira({
         path: `/rest/api/3/issue/${issueKey}/transitions`,
         method: 'POST',
-        body: {
+        body: JSON.stringify({
           transition: {
             id: status.transitionId,
           },
-        },
+        }),
       });
 
       if (!response.ok) {

@@ -92,13 +92,15 @@
 			"Label": "OperateRows",
 			"End": true,
 			"ItemBatcher": {
-				"MaxItemsPerBatch": 10
-			},
-			"ResultWriter": {
-				"Resource": "arn:aws:states:::s3:putObject",
-				"Parameters": {
-					"Bucket": "scarlet-meli-dev",
-					"Prefix": "uploads"
+				"MaxItemsPerBatch": 10,
+				"BatchInput": {
+					"apiBaseUrl.$": "$.apiBaseUrl",
+					"forgeToken.$": "$.forgeToken",
+					"bucketName.$": "$.bucketName",
+					"cloudId.$": "$.cloudId",
+					"executionId.$": "$.executionId",
+					"projectId.$": "$.projectId",
+					"client.$": "$.client"
 				}
 			},
 			"ResultPath": "$.stateInput.method"

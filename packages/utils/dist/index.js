@@ -1367,16 +1367,16 @@ class JiraClient {
   async fetchFromJira({ path, method, body }) {
     const headers = {
       Accept: "application/json",
-      Authorization: `Bearer ${this.token}`
+      Authorization: `Bearer ${this.token}`,
+      "Content-Type": "application/json"
     };
-    if (typeof body === "string") {
-      headers["Content-Type"] = "application/json";
-    }
-    return await fetch2(`${this.apiBaseUrl}/rest/api${path}`, {
+    console.log(`Fetching from Jira with params: ${JSON.stringify(headers)}, method: ${method}, body: ${JSON.stringify(body)}`);
+    const requestOptions = {
       headers,
       method,
-      body: method === "POST" ? JSON.stringify(body) : undefined
-    });
+      body
+    };
+    return fetch2(`${this.apiBaseUrl}${path}`, requestOptions);
   }
   async requestTicketsJira(payload) {
     const { method, key: issueKey, status } = payload;
@@ -1386,7 +1386,7 @@ class JiraClient {
     const response = await this.fetchFromJira({
       path: jiraRoute,
       method,
-      body: payload
+      body: JSON.stringify(payload)
     });
     if (!response.ok) {
       throw new Error(`Error al ${method === "POST" ? "crear" : "editar"} issue: ` + `${response.status} - ${await response.text()}`);
@@ -1399,20 +1399,30 @@ class JiraClient {
     return;
   }
   async getExistingIssues(query, fields) {
-    const response = await this.fetchFromJira({
-      path: `/rest/api/3/search`,
-      method: "POST",
-      body: {
-        fields,
-        jql: query,
-        maxResults: QUERY_MAX_RESULTS
+    console.log(`query: ${query}, fields: ${fields.join(",")}, maxResults: ${QUERY_MAX_RESULTS}, apiBaseUrl: ${this.apiBaseUrl}, token: ${this.token}`);
+    try {
+      const response = await this.fetchFromJira({
+        path: `/rest/api/3/search/jql`,
+        method: "POST",
+        body: JSON.stringify({
+          fields,
+          jql: query,
+          maxResults: QUERY_MAX_RESULTS
+        })
+      });
+      if (response.status !== 200) {
+        console.log(`Error Http: ${response.status} - ${response.status !== 200}`);
+        let text = await response.text();
+        console.error(`Error Http: ${text}`);
+        throw new Error(`Error Http: ${text}`);
       }
-    });
-    if (!response.ok)
-      throw new Error(`Error Http: ${await response.text()}`);
-    const data = await response.json();
-    console.log(`GET EXISTING ISSUES RETURN ${JSON.stringify(data)}`);
-    return data.issues;
+      const data = await response.json();
+      console.log(`GET EXISTING ISSUES RETURN ${JSON.stringify(data)}`);
+      return data.issues;
+    } catch (error) {
+      console.log(`Error getting existing issues: ${error}`);
+      throw error;
+    }
   }
   async transitionIssue(payload) {
     const { status, key: issueKey } = payload;
@@ -1431,11 +1441,11 @@ class JiraClient {
       const response = await this.fetchFromJira({
         path: `/rest/api/3/issue/${issueKey}/transitions`,
         method: "POST",
-        body: {
+        body: JSON.stringify({
           transition: {
             id: status.transitionId
           }
-        }
+        })
       });
       if (!response.ok) {
         throw new Error(`Error al transicionar issue: ${response.status} - ${await response.text()}`);
