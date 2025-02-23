@@ -1,5 +1,4 @@
-import {CF, CsvRow, CsvRowHeaders} from 'utils/custom_fields';
-import {getExistingIssues} from 'utils/functions';
+import {JiraClient, CF, CsvRow, CsvRowHeaders} from '/opt/utils/index.js';
 
 interface RequestPayload {
   Items: CsvRowHeaders[];
@@ -17,29 +16,34 @@ export default async function post(request: Request): Promise<Response> {
     }
 
     // Parse request body
-    const body = await request.json();
-    console.log('Request body:', body);
-
-    const responseBody = body as { Items: unknown[] };
+    const payload = await request.json();
+    console.log('Request body:', payload);
+    if (!payload.token || payload.token === '') {
+      return new Response('Authorization header is required', {status: 400});
+    }
+    const client = new JiraClient(payload.token, payload.apiBaseUrl);
+    const responseBody = payload as {Items: unknown[]};
     if (!responseBody.Items || !Array.isArray(responseBody.Items)) {
       return new Response('Invalid request body: Items array is required', {status: 400});
     }
 
     const parsedData = responseBody.Items as Record<CsvRowHeaders, string>[];
-    const scarlettIds: string[] = parsedData.map((row) => row[CsvRowHeaders.uuid] as string);
-
-    console.log(`Cantidad de scarlett Ids: ${scarlettIds.length}`, scarlettIds);
-
-    const existingIssues = await getExistingIssues(
-      `"Scarlett ID[Labels]" in (${scarlettIds.join(', ')})`,
-      [CF.scarlett_id, CF.summary],
-    );
-    console.log('Existing issues:', existingIssues);
-
     // Remover las filas que tienen '0' en la columna 'uuid'
     const filteredData = parsedData.filter(
       (row: Record<CsvRowHeaders, string>) => row[CsvRowHeaders.uuid] !== '0',
     );
+    if (!filteredData.length) {
+      return new Response('All rows have uuid 0', {status: 200});
+    }
+    const scarlettIds: string[] = filteredData.map((row) => row[CsvRowHeaders.uuid] as string);
+
+    console.log(`Cantidad de scarlett Ids: ${scarlettIds.length}`, scarlettIds);
+
+    const existingIssues = await client.getExistingIssues(
+      `"Scarlett ID[Labels]" in (${scarlettIds.join(', ')})`,
+      [CF.scarlett_id, CF.summary],
+    );
+    console.log('Existing issues:', existingIssues);
 
     return new Response(
       JSON.stringify({
@@ -47,6 +51,7 @@ export default async function post(request: Request): Promise<Response> {
         sessionValid: true,
         existingIssues,
         filteredData,
+        method: 'OMIT',
       }),
       {
         headers: {

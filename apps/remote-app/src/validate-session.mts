@@ -1,33 +1,31 @@
-// import {SQSClient, SendMessageCommand} from '@aws-sdk/client-sqs';
-import {validateContextToken, ValidationResponse} from '/opt/utils/index.js';
-import * as fs from 'fs';
-import * as path from 'path';
+import {JiraClient, validateContextToken, ValidationResponse} from '/opt/utils/index.js';
+import {SFNClient, StartExecutionCommand} from '@aws-sdk/client-sfn';
 
-// const sqsClient = new SQSClient({
-//   region: process.env.AWS_REGION,
-// });
+const sfnClient = new SFNClient({});
 
-function getDirStructure(dir: string): any {
-  const items = fs.readdirSync(dir);
-  const result: Record<string, any> = {};
+const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME ?? 'scarlet-operations-dev-scarlet-storage';
 
-  for (const item of items) {
-    const fullPath = path.join(dir, item);
-    const stats = fs.statSync(fullPath);
+// function getDirStructure(dir: string): any {
+//   const items = fs.readdirSync(dir);
+//   const result: Record<string, any> = {};
 
-    if (stats.isDirectory()) {
-      result[item] = getDirStructure(fullPath);
-    } else {
-      result[item] = {
-        size: stats.size,
-        modified: stats.mtime,
-        type: 'file',
-      };
-    }
-  }
+//   for (const item of items) {
+//     const fullPath = path.join(dir, item);
+//     const stats = fs.statSync(fullPath);
 
-  return result;
-}
+//     if (stats.isDirectory()) {
+//       result[item] = getDirStructure(fullPath);
+//     } else {
+//       result[item] = {
+//         size: stats.size,
+//         modified: stats.mtime,
+//         type: 'file',
+//       };
+//     }
+//   }
+
+//   return result;
+// }
 
 // export default async function post(request: Request): Promise<Response> {
 //   // Obtener la estructura del directorio /opt
@@ -70,9 +68,27 @@ export default async function post(request: Request): Promise<Response> {
     const spanId = request.headers.get('x-b3-spanid');
     const authToken = request.headers.get('authorization')?.replace('Bearer ', '');
     const forgeOauthSystem = request.headers.get('x-forge-oauth-system');
+    const res = await request.json();
+    console.log(`Request body: ${JSON.stringify(res)}`);
+    const {fileId, projectId} = JSON.parse(res);
+    // const {fileId, projectId} = await request.json();
 
+    if (!fileId || !projectId) {
+      console.log(
+        `Missing required parameters: fileId and projectId {fileId: ${fileId}, projectId: ${projectId}}`,
+      );
+      return new Response('Missing required parameters: fileId and projectId', {
+        status: 400,
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+      });
+    }
     // Validar headers requeridos
     if (!traceId || !spanId || !authToken) {
+      console.log(
+        `Missing required headers: x-b3-traceid, x-b3-spanid, or authorization {x-b3-traceid: ${traceId}, x-b3-spanid: ${spanId}, authorization: ${authToken}}`,
+      );
       return new Response('Missing required headers: x-b3-traceid, x-b3-spanid, or authorization', {
         status: 400,
         headers: {
@@ -81,10 +97,12 @@ export default async function post(request: Request): Promise<Response> {
       });
     }
 
+    console.log('File ID:', fileId);
+    console.log('Project ID:', projectId);
+
     console.log('=== Validate Session Handler ===');
     console.log('APP_ID:', process.env);
     console.log('Auth Token (first 10 chars):', authToken?.substring(0, 10) + '...');
-
     // Validar el token de contexto
     console.log('Calling validateContextToken...');
     const validation = (await validateContextToken(
@@ -106,42 +124,50 @@ export default async function post(request: Request): Promise<Response> {
     // Extraer información relevante
     const {app, context} = validation;
     const {apiBaseUrl} = app;
-
+    console.log('API Base URL:', apiBaseUrl);
+    console.log('Forge Token:', forgeOauthSystem);
+    console.log('Trace ID:', traceId);
+    console.log('Span ID:', spanId);
+    console.log('Cloud ID:', context.cloudId);
+    console.log('Site URL:', context.siteUrl);
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Execution ID:', fileId);
+    console.log('Project ID:', projectId);
     // Preparar mensaje para SQS
-    const message = {
-      apiBaseUrl,
-      forgeToken: forgeOauthSystem,
-      traceId,
-      spanId,
-      cloudId: context.cloudId,
-      siteUrl: context.siteUrl,
-      timestamp: new Date().toISOString(),
-    };
+    const client = JiraClient.fromString(
+      JSON.stringify({
+        token: authToken,
+        apiBaseUrl,
+      }),
+    );
 
-    // Enviar mensaje a SQS
-    // const command = new SendMessageCommand({
-    //   QueueUrl: process.env.SQS_QUEUE_URL,
-    //   MessageBody: JSON.stringify(message),
-    //   MessageAttributes: {
-    //     TraceId: {
-    //       DataType: 'String',
-    //       StringValue: traceId,
-    //     },
-    //     SpanId: {
-    //       DataType: 'String',
-    //       StringValue: spanId,
-    //     },
-    //   },
-    // });
+    const message = new StartExecutionCommand({
+      stateMachineArn:
+        'arn:aws:states:us-east-1:529202746267:stateMachine:scarlet-execution-machine',
+      name: `scarlet-${fileId}-${new Date().getTime()}`,
+      traceHeader: `${traceId}-${spanId}`,
+      input: JSON.stringify({
+        filePath: `uploads/${fileId}.csv`,
+        forgeToken: forgeOauthSystem,
+        bucketName: AWS_BUCKET_NAME,
+        cloudId: context.cloudId,
+        siteUrl: context.siteUrl,
+        executionId: fileId,
+        apiBaseUrl,
+        projectId,
+        client,
+      }),
+    });
 
-    // await sqsClient.send(command);
+    console.log('Step Function Message:', message);
+    const machine = await sfnClient.send(message);
+    console.log('Step Function Response:', machine);
 
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Session validated and task queued',
-        traceId,
-        spanId,
+        executionId: fileId,
       }),
       {
         headers: {

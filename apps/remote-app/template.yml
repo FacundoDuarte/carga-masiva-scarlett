@@ -10,6 +10,7 @@ Globals:
     Layers:
       - !Ref UtilsLayer
       - arn:aws:lambda:us-east-1:529202746267:layer:bun:1
+
   Api:
     OpenApiVersion: 3.0.1
 Resources:
@@ -168,8 +169,8 @@ Resources:
       Description: !Sub
         - Stack ${AWS::StackName} Function ${ResourceName}
         - ResourceName: ValidateSession
-      Handler: validate-session.post
-      CodeUri: ./src
+      CodeUri: ./dist
+      Handler: validate-session.default
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
@@ -178,8 +179,13 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - sqs:SendMessage
-              Resource: !GetAtt ScarletExecutionQueue.Arn
+                - s3:PutObject
+                - s3:GetObject
+              Resource: !Sub arn:aws:s3:::${AWS::StackName}-scarlet-storage/*
+            - Effect: Allow
+              Action:
+                - states:StartExecution
+              Resource: "*"
       Events:
         ApiPOSTvalidatesession:
           Type: Api
@@ -188,19 +194,19 @@ Resources:
             Method: POST
             RestApiId: !Ref Api
     Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        EntryPoints:
-          - validate-session.ts
-        Bundle: true
-        Minify: true
-        Format: esm
-        Platform: node
-        Target: es2020
-        External:
-          - "@aws-sdk/*"
-          - aws-sdk
-          - "@forge/api"
+      BuildMethod: makefile
+    #   BuildProperties:
+    #     EntryPoints:
+    #       - validate-session.mts
+    #     Bundle: true
+    #     Minify: true
+    #     Format: esm
+    #     Platform: node
+    #     Target: es2020
+    #     External:
+    #       - '@aws-sdk/*'
+    #       - '@forge/api'
+    #       - bun
     Events:
       ApiPOSTvalidatesession:
         Type: Api
@@ -240,7 +246,7 @@ Resources:
 
     Properties:
       Handler: scarlet-mapping.handler
-      CodeUri: ./
+      CodeUri: ./src
       Policies:
         - AWSLambdaBasicExecutionRole
         - S3CrudPolicy:
@@ -251,12 +257,12 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - src/get-existing-issues.mts
+          - get-existing-issues.mts
         Bundle: true
         Minify: true
         Format: esm
         Platform: node
-        Target: esnext
+        Target: es2020
         External:
           - "@aws-sdk/*"
           - aws-sdk
@@ -269,8 +275,8 @@ Resources:
         Sourcemap: false
 
     Properties:
-      Handler: get-existing-issues.handler
-      CodeUri: ./
+      Handler: get-existing-issues.post
+      CodeUri: ./src
       Policies:
         - AWSLambdaBasicExecutionRole
         - S3CrudPolicy:
@@ -281,7 +287,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - src/save-storage.mts
+          - save-storage.mts
         Bundle: true
         Minify: true
         Format: esm
@@ -300,7 +306,7 @@ Resources:
 
     Properties:
       Handler: save-storage.handler
-      CodeUri: ./
+      CodeUri: ./src
       Policies:
         - AWSLambdaBasicExecutionRole
         - S3CrudPolicy:
@@ -332,12 +338,12 @@ Resources:
     Type: AWS::Serverless::StateMachine
     Properties:
       DefinitionSubstitutions:
-        ValidateSessionFunction: !GetAtt ValidateSessionFunction.Arn
         ScarletMappingFunction: !GetAtt ScarletMappingFunction.Arn
         GetExistingIssuesFunction: !GetAtt GetExistingIssuesFunction.Arn
         SaveStorage: !GetAtt SaveStorage.Arn
         OperationsQueue: !GetAtt OperationsQueue.Arn
         AddOrderFunction: !Ref AWS::NoValue
+        OperationQueue: !Ref AWS::NoValue
       Role: !GetAtt StateMachineExecutionRole.Arn
       Name: scarlet-execution-machine
       DefinitionUri: statemachine.json
@@ -370,6 +376,13 @@ Resources:
                   - sqs:GetQueueAttributes
                   - states:StartExecution
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource:
+                  - !Sub arn:aws:s3:::scarlet-meli-dev/*
+                  - !Sub arn:aws:s3:::${AWS::StackName}-scarlet-storage/*
   GetUploadUrl:
     Type: AWS::Serverless::Function
     Properties:

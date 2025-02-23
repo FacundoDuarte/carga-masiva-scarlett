@@ -1,0 +1,103 @@
+{
+    "Makefile": {
+        "size": 365,
+        "modified": "1980-01-01T00:00:00.000Z",
+        "type": "file"
+    },
+    "bootstrap": {
+        "size": 109,
+        "modified": "2025-02-17T04:16:42.000Z",
+        "type": "file"
+    },
+    "bun": {
+        "size": 92743312,
+        "modified": "2025-02-01T00:37:10.000Z",
+        "type": "file"
+    },
+    "dist": {
+        "index.js": {
+            "size": 187693,
+            "modified": "1980-01-01T00:00:00.000Z",
+            "type": "file"
+        },
+        "utils": {
+            "index.js": {
+                "size": 932260,
+                "modified": "1980-01-01T00:00:00.000Z",
+                "type": "file"
+            }
+        }
+    },
+    "package.json": {
+        "size": 437,
+        "modified": "1980-01-01T00:00:00.000Z",
+        "type": "file"
+    },
+    "runtime.ts": {
+        "size": 24408,
+        "modified": "2025-02-17T04:16:42.000Z",
+        "type": "file"
+    },
+    "src": {
+        "custom_fields.js": {
+            "size": 2386,
+            "modified": "1980-01-01T00:00:00.000Z",
+            "type": "file"
+        },
+        "custom_fields.ts": {
+            "size": 4483,
+            "modified": "1980-01-01T00:00:00.000Z",
+            "type": "file"
+        },
+        "functions.js": {
+            "size": 5270,
+            "modified": "1980-01-01T00:00:00.000Z",
+            "type": "file"
+        },
+        "functions.ts": {
+            "size": 5440,
+            "modified": "1980-01-01T00:00:00.000Z",
+            "type": "file"
+        },
+        "index.js": {
+            "size": 224,
+            "modified": "1980-01-01T00:00:00.000Z",
+            "type": "file"
+        },
+        "index.ts": {
+            "size": 717,
+            "modified": "1980-01-01T00:00:00.000Z",
+            "type": "file"
+        },
+        "interfaces.js": {
+            "size": 11,
+            "modified": "1980-01-01T00:00:00.000Z",
+            "type": "file"
+        },
+        "interfaces.ts": {
+            "size": 982,
+            "modified": "1980-01-01T00:00:00.000Z",
+            "type": "file"
+        },
+        "types.js": {
+            "size": 11,
+            "modified": "1980-01-01T00:00:00.000Z",
+            "type": "file"
+        },
+        "types.ts": {
+            "size": 2396,
+            "modified": "1980-01-01T00:00:00.000Z",
+            "type": "file"
+        }
+    },
+    "tsconfig.json": {
+        "size": 649,
+        "modified": "1980-01-01T00:00:00.000Z",
+        "type": "file"
+    },
+    "tsconfig.tsbuildinfo": {
+        "size": 73072,
+        "modified": "1980-01-01T00:00:00.000Z",
+        "type": "file"
+    }
+}

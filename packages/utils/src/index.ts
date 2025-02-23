@@ -11,26 +11,14 @@ export {
   type GetIssueKeyPayload,
   type GetIssueStatusPayload,
   type GetUploadUrlPayload,
-  type OperationPayload
+  type OperationPayload,
 } from './types';
 
 // Re-exportar todo desde functions.ts
-export {
-  requestTicketsJira,
-  getExistingIssues,
-  validateContextToken
-} from './functions';
+export {JiraClient, validateContextToken} from './functions';
 
 // Re-exportar todo desde interfaces.ts
-export type {
-  ValidationResponse
-} from './interfaces';
+export type {ValidationResponse} from './interfaces';
 
 // Re-exportar todo desde custom_fields.ts
-export {
-  CF,
-  CsvRowHeaders,
-  type CsvRow,
-  type Mapping,
-  scarlettMapping
-} from './custom_fields';
+export {CF, CsvRowHeaders, type CsvRow, type Mapping, scarlettMapping} from './custom_fields';

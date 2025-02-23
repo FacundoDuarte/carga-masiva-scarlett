@@ -1,0 +1,84 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+
+export default async function post(request: Request): Promise<Response> {
+  try {
+    if (request.method == 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Max-Age': '86400',
+        },
+      });
+    }
+
+    if (request.method !== 'POST') {
+      return new Response('Method not allowed', {
+        status: 405,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
+    // Función recursiva para obtener la estructura del directorio
+    function getDirStructure(dir: string): any {
+      const items = fs.readdirSync(dir);
+      const result: Record<string, any> = {};
+      
+      for (const item of items) {
+        const fullPath = path.join(dir, item);
+        const stats = fs.statSync(fullPath);
+        
+        if (stats.isDirectory()) {
+          result[item] = getDirStructure(fullPath);
+        } else {
+          result[item] = {
+            size: stats.size,
+            modified: stats.mtime,
+            type: 'file'
+          };
+        }
+      }
+      
+      return result;
+    }
+
+    // Obtener la estructura del directorio /opt
+    const optStructure = getDirStructure('/opt');
+
+    // Devolver la estructura como respuesta
+    return new Response(
+      JSON.stringify({
+        message: 'Directory structure of /opt/',
+        structure: optStructure
+      }, null, 2),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      }
+    );
+
+  } catch (error) {
+    console.error('Error reading directory:', error);
+    return new Response(
+      JSON.stringify({
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : String(error)
+      }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      }
+    );
+  }
+}

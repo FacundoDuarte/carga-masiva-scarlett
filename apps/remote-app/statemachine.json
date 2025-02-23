@@ -9,9 +9,9 @@
 					"Mode": "DISTRIBUTED",
 					"ExecutionType": "EXPRESS"
 				},
-				"StartAt": "Lambda Invoke",
+				"StartAt": "GetExistingIssues",
 				"States": {
-					"Lambda Invoke": {
+					"GetExistingIssues": {
 						"Type": "Task",
 						"Resource": "arn:aws:states:::lambda:invoke",
 						"Parameters": {

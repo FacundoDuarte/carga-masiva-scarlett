@@ -161,7 +161,7 @@ export default function App() {
 
         if (!uploadResponse.ok) {
           throw new Error(
-            `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`,
+            `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`
           );
         }
 
@@ -195,7 +195,7 @@ export default function App() {
       setIsProcessing(Status.inprogress);
       const executionId = await _invokeCsvOperations(
         objectKey,
-        context.extension.project.id,
+        context.extension.project.id
       );
       setExecutionId(executionId);
       ticketsResult();
@@ -318,15 +318,15 @@ export default function App() {
 
 async function _invokeCsvOperations(
   s3Key: string,
-  projectId: string,
+  projectId: string
 ): Promise<string> {
   const res = await invokeRemote<{ executionId: string }>({
     path: '/Prod/validate-session',
     method: 'POST',
-    body: JSON.stringify({
+    body: {
       projectId: projectId,
       fileId: s3Key,
-    }),
+    },
   });
   console.log(res);
   return res.executionId;

@@ -1,0 +1,5 @@
+[bundle]
+entrypoints = ["./src/validate-session.mts"]
+minify = true
+sourcemap = "external"
+external = []
