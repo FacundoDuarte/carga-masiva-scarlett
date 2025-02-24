@@ -35,6 +35,13 @@ Resources:
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt ScarletExecutionDLQ.Arn
         maxReceiveCount: 3
+  SQSTrigger:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 10
+      Enabled: true
+      EventSourceArn: !GetAtt ScarletExecutionQueue.Arn
+      FunctionName: !Ref ExecuteOperationFunction
 
   ScarletExecutionDLQ:
     Type: AWS::SQS::Queue
@@ -58,9 +65,9 @@ Resources:
               - POST
               - HEAD
             AllowedOrigins:
-              - '*'
+              - "*"
             AllowedHeaders:
-              - '*'
+              - "*"
       LifecycleConfiguration:
         Rules:
           - Id: DeleteOldFiles
@@ -76,7 +83,7 @@ Resources:
         openapi: 3.0.1
         info:
           title: Scarlett API
-          version: '1.0'
+          version: "1.0"
         x-amazon-apigateway-binary-media-types:
           - multipart/form-data
         paths:
@@ -90,10 +97,10 @@ Resources:
                 type: aws_proxy
                 contentHandling: CONVERT_TO_TEXT
               responses:
-                '200':
+                "200":
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '*'
+                allowOrigin: "*"
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -113,10 +120,10 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                '200':
+                "200":
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '*'
+                allowOrigin: "*"
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -136,10 +143,10 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                '200':
+                "200":
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '*'
+                allowOrigin: "*"
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -159,10 +166,10 @@ Resources:
                 httpMethod: GET
                 type: aws_proxy
               responses:
-                '200':
+                "200":
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '*'
+                allowOrigin: "*"
                 allowMethods:
                   - GET
                   - OPTIONS
@@ -197,7 +204,7 @@ Resources:
             - Effect: Allow
               Action:
                 - states:StartExecution
-              Resource: '*'
+              Resource: "*"
       Events:
         ApiPOSTvalidatesession:
           Type: Api
@@ -207,18 +214,6 @@ Resources:
             RestApiId: !Ref Api
     Metadata:
       BuildMethod: makefile
-    #   BuildProperties:
-    #     EntryPoints:
-    #       - validate-session.mts
-    #     Bundle: true
-    #     Minify: true
-    #     Format: esm
-    #     Platform: node
-    #     Target: es2020
-    #     External:
-    #       - '@aws-sdk/*'
-    #       - '@forge/api'
-    #       - bun
     Events:
       ApiPOSTvalidatesession:
         Type: Api
@@ -226,22 +221,22 @@ Resources:
           Path: /validate-session
           Method: POST
           RestApiId: !Ref Api
-  ScarletMappingFunction:
+  ExecuteOperationFunction:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - src/scarlet-mapping.mts
+          - execute-operation.mts
         Bundle: true
         Minify: true
         Format: esm
         Platform: node
         Target: esnext
         External:
-          - '@aws-sdk/*'
+          - "@aws-sdk/*"
           - aws-sdk
-          - '@forge/api'
+          - "@forge/api"
           - date-fns
           - jose
           - uuid
@@ -250,12 +245,23 @@ Resources:
         Sourcemap: false
 
     Properties:
-      Handler: scarlet-mapping.handler
+      Handler: execute-operation.post
       CodeUri: ./src
       Policies:
         - AWSLambdaBasicExecutionRole
         - S3CrudPolicy:
             BucketName: !Ref ScarletStorageBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sqs:SendMessage
+                - sqs:ReceiveMessage
+                - sqs:DeleteMessage
+                - sqs:GetQueueAttributes
+              Resource:
+                - !GetAtt ScarletExecutionQueue.Arn
+      Timeout: 30
+      Tracing: Active
   GetExistingIssuesFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -269,16 +275,15 @@ Resources:
         Platform: node
         Target: es2020
         External:
-          - '@aws-sdk/*'
+          - "@aws-sdk/*"
           - aws-sdk
-          - '@forge/api'
+          - "@forge/api"
           - date-fns
           - jose
           - uuid
           - bun
         TreeShaking: true
         Sourcemap: false
-
     Properties:
       Handler: get-existing-issues.post
       CodeUri: ./src
@@ -291,7 +296,7 @@ Resources:
     Type: AWS::Serverless::StateMachine
     Properties:
       DefinitionSubstitutions:
-        ScarletMappingFunction: !GetAtt ScarletMappingFunction.Arn
+        ExecuteOperationFunction: !GetAtt ExecuteOperationFunction.Arn
         GetExistingIssuesFunction: !GetAtt GetExistingIssuesFunction.Arn
         ScarletExecutionQueue: !Ref ScarletExecutionQueue
       Role: !GetAtt StateMachineExecutionRole.Arn
@@ -303,7 +308,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -315,7 +320,7 @@ Resources:
       Policies:
         - PolicyName: StepFunctionsExecutionPolicy
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
@@ -325,7 +330,7 @@ Resources:
                   - sqs:DeleteMessage
                   - sqs:GetQueueAttributes
                   - states:StartExecution
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - s3:PutObject
@@ -371,9 +376,9 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - '@aws-sdk/*'
+          - "@aws-sdk/*"
           - aws-sdk
-          - '@forge/api'
+          - "@forge/api"
           - date-fns
           - jose
           - uuid

@@ -24,7 +24,7 @@ export const enum CF {
 }
 
 export const enum StatusName {
-  EnProceso = 'En proceso',
+  EnProceso = 'En Proceso',
   Done = 'Done',
   AprovacaoCompliance = 'Aprovação Compliance',
   EncursoFinops = 'En curso FinOps',
@@ -36,7 +36,7 @@ export const enum StatusName {
 
 // Objeto para validación en runtime
 export const ValidStatusNames = {
-  EnProceso: 'En proceso',
+  EnProceso: 'En Proceso',
   Done: 'Done',
   AprovacaoCompliance: 'Aprovação Compliance',
   EncursoFinops: 'En curso FinOps',

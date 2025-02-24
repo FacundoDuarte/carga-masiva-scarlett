@@ -1356,13 +1356,13 @@ class JiraClient {
     return new JiraClient(token, apiBaseUrl);
   }
   validateIssueKey(method, issueKey) {
-    if (method.toLowerCase() === "PUT" && !issueKey) {
+    if (method.toUpperCase() === "POST") {
+      return;
+    }
+    if (!issueKey) {
       throw new Error("issueKey es requerido para editar un ticket");
     }
     return issueKey;
-  }
-  isEdit(method) {
-    return method === "PUT";
   }
   async fetchFromJira({ path, method, body }) {
     const headers = {
@@ -1370,7 +1370,7 @@ class JiraClient {
       Authorization: `Bearer ${this.token}`,
       "Content-Type": "application/json"
     };
-    console.log(`Fetching from Jira with params: ${JSON.stringify(headers)}, method: ${method}, body: ${JSON.stringify(body)}`);
+    console.log(`Fetching from Jira with params: ${JSON.stringify(headers)},path: ${this.apiBaseUrl}${path}, method: ${method}, body: ${body}`);
     const requestOptions = {
       headers,
       method,
@@ -1381,17 +1381,16 @@ class JiraClient {
   async sendRequest(payload) {
     const { method, issue, change } = payload;
     if (!method)
-      return;
-    const jiraRoute = this.isEdit(method) ? `/rest/api/3/issue/${this.validateIssueKey(method, issue.key)}` : `/rest/api/3/issue`;
+      return { success: true, status: 200 };
     const response = await this.fetchFromJira({
-      path: jiraRoute,
+      path: `/rest/api/3/issue/${this.validateIssueKey(method, issue.key) ?? ""}`,
       method,
-      body: JSON.stringify(payload)
+      body: JSON.stringify(change && change.transitionId ? { ...issue, transition: { id: change.transitionId } } : { ...issue })
     });
     if (!response.ok) {
       throw new Error(`Error al ${method === "POST" ? "crear" : "editar"} issue: ` + `${response.status} - ${await response.text()}`);
     }
-    return;
+    return { success: true, status: response.status };
   }
   async getExistingIssues(query, fields) {
     console.log(`query: ${query}, fields: ${fields.join(",")}, maxResults: ${QUERY_MAX_RESULTS}, apiBaseUrl: ${this.apiBaseUrl}, token: ${this.token}`);
@@ -1419,36 +1418,6 @@ class JiraClient {
       throw error;
     }
   }
-  async transitionIssue(payload) {
-    const {
-      change,
-      issue: { key: issueKey }
-    } = payload;
-    if (change.type !== "transition" || !change.transitionId || !issueKey) {
-      throw new Error("TransitionId and issueKey are required for transition");
-    }
-    const issues = await this.getExistingIssues(`key = ${issueKey}`, ["status"]);
-    if (!issues.length) {
-      throw new Error(`Issue with key ${issueKey} not found`);
-    }
-    if (!issues[0].fields?.status?.name) {
-      throw new Error(`Status field not found for issue ${issueKey}`);
-    }
-    const actualStatus = issues[0].fields.status.name;
-    const response = await this.fetchFromJira({
-      path: `/rest/api/3/issue/${issueKey}/transitions`,
-      method: "POST",
-      body: JSON.stringify({
-        transition: {
-          id: change.transitionId
-        }
-      })
-    });
-    if (!response.ok) {
-      throw new Error(`Error al transicionar issue: ${response.status} - ${await response.text()}`);
-    }
-    return { success: true };
-  }
 }
 async function validateContextToken(invocationToken, appId) {
   console.log("=== validateContextToken v2 ===");
@@ -1459,21 +1428,10 @@ async function validateContextToken(invocationToken, appId) {
   const jwksUrl = "https://forge.cdn.prod.atlassian-dev.net/.well-known/jwks.json";
   console.log("JWKS URL:", jwksUrl);
   try {
-    console.log("Creating JWKS...");
     const JWKS = createRemoteJWKSet(new URL(jwksUrl));
-    console.log("JWKS created successfully");
-    console.log("Verifying token...");
     const audienceValue = `ari:cloud:ecosystem::app/${appId}`;
-    console.log("Expected audience:", audienceValue);
     const { payload } = await jwtVerify(invocationToken, JWKS, {
       audience: audienceValue
-    });
-    console.log("Token verified successfully");
-    console.log("Payload received:", {
-      aud: payload.aud,
-      iss: payload.iss,
-      exp: payload.exp,
-      iat: payload.iat
     });
     return {
       app: payload.app,
@@ -5463,7 +5421,7 @@ var CF;
 })(CF ||= {});
 var StatusName;
 ((StatusName2) => {
-  StatusName2["EnProceso"] = "En proceso";
+  StatusName2["EnProceso"] = "En Proceso";
   StatusName2["Done"] = "Done";
   StatusName2["AprovacaoCompliance"] = "Aprova\xE7\xE3o Compliance";
   StatusName2["EncursoFinops"] = "En curso FinOps";
@@ -5472,7 +5430,7 @@ var StatusName;
   StatusName2["Closed"] = "Closed";
 })(StatusName ||= {});
 var ValidStatusNames = {
-  EnProceso: "En proceso",
+  EnProceso: "En Proceso",
   Done: "Done",
   AprovacaoCompliance: "Aprova\xE7\xE3o Compliance",
   EncursoFinops: "En curso FinOps",
@@ -5520,13 +5478,13 @@ var scarlettMapping = {
   ["customfield_19898" /* estado_integracion_sap_final */]: (row) => row["Estado SAP" /* estadoIntegracionSapFinal */] || ""
 };
 var statusMapping = {
-  ["En proceso" /* EnProceso */]: 3,
-  ["Done" /* Done */]: 4,
-  ["Aprova\xE7\xE3o Compliance" /* AprovacaoCompliance */]: 1,
-  ["En curso FinOps" /* EncursoFinops */]: 5,
-  ["Resolved" /* Resolved */]: 6,
-  ["Reopened" /* Reopened */]: 7,
-  ["Closed" /* Closed */]: 8
+  ["En Proceso" /* EnProceso */]: 61,
+  ["Done" /* Done */]: 81,
+  ["Aprova\xE7\xE3o Compliance" /* AprovacaoCompliance */]: 71,
+  ["En curso FinOps" /* EncursoFinops */]: 51,
+  ["Resolved" /* Resolved */]: 31,
+  ["Reopened" /* Reopened */]: 41,
+  ["Closed" /* Closed */]: 21
 };
 function parseAndFormatDate(dateString, inputFormat = "dd-MM-yyyy", outputFormat = "yyyy-MM-dd") {
   const parsedDate = parse2(dateString, inputFormat, new Date);

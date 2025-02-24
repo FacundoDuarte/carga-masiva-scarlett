@@ -12,7 +12,6 @@ import {
   OperationPayload,
 } from '/opt/utils/index.js';
 
-
 const ISSUE_TYPE_ID = 11871;
 
 export default async function post(request: Request): Promise<Response> {
@@ -111,15 +110,18 @@ export default async function post(request: Request): Promise<Response> {
 
     const operations: OperationPayload[] = [];
     for (const row of rows) {
-      const existingIssue = existingIssues.find(
-        (issue) => issue.fields[CF.scarlett_id] === row[CsvRowHeaders.uuid],
+      const existingIssue = existingIssues.find((issue) =>
+        (issue.fields[CF.scarlett_id] as string[]).includes(row[CsvRowHeaders.uuid]),
       );
       const {
         key,
         fields: {[CF.summary]: summary, [CF.status]: status},
       } = existingIssue ?? {
         key: undefined,
-        fields: {summary: row[CsvRowHeaders.uuid], status: {name: StatusName.AprovacaoCompliance}},
+        fields: {
+          summary: row[CsvRowHeaders.uuid],
+          status: {name: StatusName.AprovacaoCompliance as string},
+        },
       };
       // Create base issue structure
       const issue: Partial<Issue> = {
@@ -133,25 +135,17 @@ export default async function post(request: Request): Promise<Response> {
       for (const [cfField, mapFunction] of Object.entries(scarlettMapping)) {
         (issue.fields as any)[cfField] = mapFunction(row);
       }
+      // Check if a transition is needed
+      let transitionId = checkTransitionAvailable(status?.name, row[CsvRowHeaders.estadoEnJira]);
+
       operations.push({
         issue,
         method: key ? 'PUT' : 'POST',
         change: {
           type: key ? 'update' : 'create',
+          transitionId,
         },
       });
-      // Check if a transition is needed
-      let transitionId = checkTransitionAvailable(status, row[CsvRowHeaders.estadoEnJira]);
-      if (transitionId) {
-        operations.push({
-          issue,
-          method: 'POST',
-          change: {
-            type: 'transition',
-            transitionId,
-          },
-        });
-      }
     }
 
     return new Response(
@@ -169,14 +163,19 @@ export default async function post(request: Request): Promise<Response> {
 }
 
 function checkTransitionAvailable(
-  currentStatus: {name: string; id?: string} | undefined,
-  statusFromCsv: string,
+  fromState: string | undefined,
+  toState: string,
 ): number | undefined {
-  if (!currentStatus || currentStatus.name == statusFromCsv) return;
-  if (!isValidStatus(currentStatus.name) || !isValidStatus(statusFromCsv)) {
-    throw new Error(`Status ${currentStatus.name} or ${statusFromCsv} is not valid`);
+  if (!isValidStatus(toState) || (fromState && !isValidStatus(fromState))) {
+    throw new Error(
+      `Status ${fromState} (${
+        fromState ? isValidStatus(fromState) : 'not defined'
+      }) or ${toState} (${isValidStatus(toState)}) are not valid`,
+    );
   }
-  return statusMapping[statusFromCsv] ?? undefined;
+  //retorno vacio si el fromState es el mismo que toState
+  if (fromState && fromState === toState) return;
+  return statusMapping[toState];
 }
 
 //Necesito crearme en typescript una función auxiliar que reciba un string y me permita validar que es parte del enumerado StatusName

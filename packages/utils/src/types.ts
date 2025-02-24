@@ -35,7 +35,7 @@ export type Issue = {
     issuetype: {id: number};
     status?: {
       name: string;
-      id: string;
+      // id: string;
     };
   } & CustomField;
 };
@@ -79,11 +79,10 @@ export interface GetUploadUrlPayload extends RequestPayload {
 export type OperationPayload = {
   method: 'PUT' | 'POST' | undefined;
   issue: Partial<Issue>;
-  change:
-    | {
-        type: 'create' | 'update';
-      }
-    | {type: 'transition'; transitionId: number; from?: string; to?: string};
+  change: {
+    type: 'create' | 'update';
+    transitionId: number | undefined;
+  };
 };
 
 // export type Invoice = {

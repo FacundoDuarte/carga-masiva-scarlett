@@ -1,7 +1,7 @@
 import { parse, format } from 'date-fns';
 // Objeto para validación en runtime
 export const ValidStatusNames = {
-    EnProceso: 'En proceso',
+    EnProceso: 'En Proceso',
     Done: 'Done',
     AprovacaoCompliance: 'Aprovação Compliance',
     EncursoFinops: 'En curso FinOps',
@@ -28,13 +28,13 @@ export const scarlettMapping = {
     ["customfield_19898" /* CF.estado_integracion_sap_final */]: (row) => row["Estado SAP" /* CsvRowHeaders.estadoIntegracionSapFinal */] || '',
 };
 export const statusMapping = {
-    ["En proceso" /* StatusName.EnProceso */]: 3,
-    ["Done" /* StatusName.Done */]: 4,
-    ["Aprova\u00E7\u00E3o Compliance" /* StatusName.AprovacaoCompliance */]: 1,
-    ["En curso FinOps" /* StatusName.EncursoFinops */]: 5,
-    ["Resolved" /* StatusName.Resolved */]: 6,
-    ["Reopened" /* StatusName.Reopened */]: 7,
-    ["Closed" /* StatusName.Closed */]: 8,
+    ["En Proceso" /* StatusName.EnProceso */]: 61,
+    ["Done" /* StatusName.Done */]: 81,
+    ["Aprova\u00E7\u00E3o Compliance" /* StatusName.AprovacaoCompliance */]: 71,
+    ["En curso FinOps" /* StatusName.EncursoFinops */]: 51,
+    ["Resolved" /* StatusName.Resolved */]: 31,
+    ["Reopened" /* StatusName.Reopened */]: 41,
+    ["Closed" /* StatusName.Closed */]: 21,
 };
 /**
  * Parsea una fecha a partir del formato de entrada y la retorna en el formato deseado.

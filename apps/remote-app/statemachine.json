@@ -48,7 +48,7 @@
 									"OutputPath": "$.Payload",
 									"Parameters": {
 										"Payload.$": "$",
-										"FunctionName": "${ScarletMappingFunction}"
+										"FunctionName": "${ExecuteOperationFunction}"
 									},
 									"Retry": [
 										{
