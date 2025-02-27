@@ -1,4 +1,4 @@
-import {parse, format} from 'date-fns';
+import {parse, isValid, format} from 'date-fns';
 
 export const enum CF {
   summary = 'summary',
@@ -31,7 +31,6 @@ export const enum StatusName {
   Resolved = 'Resolved',
   Reopened = 'Reopened',
   Closed = 'Closed',
-
 }
 
 // Objeto para validación en runtime
@@ -113,21 +112,30 @@ export type CustomFieldMapping = {
 /**
  * Parsea una fecha a partir del formato de entrada y la retorna en el formato deseado.
  * @param dateString - La fecha en formato string.
- * @param inputFormat - El formato en el que se encuentra dateString (por defecto 'dd-MM-yyyy').
+ * @param possibleFormats - Lista de formatos posibles para la fecha.
  * @param outputFormat - El formato de salida deseado (por defecto 'yyyy-MM-dd').
  * @returns La fecha formateada.
  */
 function parseAndFormatDate(
   dateString: string,
-  inputFormat: string = 'dd-MM-yyyy',
+  possibleFormats: string[] = ['dd-MM-yyyy', 'yyyy-MM-dd', 'MM/ /yyyy', 'dd/MM/yyyy'],
   outputFormat: string = 'yyyy-MM-dd',
 ): string {
-  // Parsea la fecha a partir del formato de entrada
-  const parsedDate = parse(dateString, inputFormat, new Date());
-
-  // Retorna la fecha formateada según el formato de salida
-  return format(parsedDate, outputFormat);
+  // Intentar cada formato hasta encontrar uno válido
+  for (const formatString of possibleFormats) {
+    try {
+      const parsedDate = parse(dateString, formatString, new Date());
+      // Verificar si la fecha es válida
+      if (isValid(parsedDate)) {
+        return format(parsedDate, outputFormat);
+      }
+    } catch {
+      // Continuar con el siguiente formato si hay error
+      continue;
+    }
+  }
+  // Si ninguno de los formatos funciona, lanzar error
+  throw new Error(
+    `No se pudo parsear la fecha '${dateString}' con ninguno de los formatos disponibles`,
+  );
 }
-
-// Ejemplo de uso:
-const fechaFormateada = parseAndFormatDate('22-01-2025');

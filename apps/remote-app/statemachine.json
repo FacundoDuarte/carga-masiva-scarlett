@@ -40,32 +40,8 @@
 							"ProcessorConfig": {
 								"Mode": "INLINE"
 							},
-							"StartAt": "Operations Execution",
+							"StartAt": "SQS SendMessage",
 							"States": {
-								"Operations Execution": {
-									"Type": "Task",
-									"Resource": "arn:aws:states:::lambda:invoke",
-									"OutputPath": "$.Payload",
-									"Parameters": {
-										"Payload.$": "$",
-										"FunctionName": "${ExecuteOperationFunction}"
-									},
-									"Retry": [
-										{
-											"ErrorEquals": [
-												"Lambda.ServiceException",
-												"Lambda.AWSLambdaException",
-												"Lambda.SdkClientException",
-												"Lambda.TooManyRequestsException"
-											],
-											"IntervalSeconds": 1,
-											"MaxAttempts": 3,
-											"BackoffRate": 2,
-											"JitterStrategy": "FULL"
-										}
-									],
-									"Next": "SQS SendMessage"
-								},
 								"SQS SendMessage": {
 									"Type": "Task",
 									"Resource": "arn:aws:states:::sqs:sendMessage",

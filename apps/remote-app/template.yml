@@ -65,9 +65,9 @@ Resources:
               - POST
               - HEAD
             AllowedOrigins:
-              - "*"
+              - '*'
             AllowedHeaders:
-              - "*"
+              - '*'
       LifecycleConfiguration:
         Rules:
           - Id: DeleteOldFiles
@@ -83,7 +83,7 @@ Resources:
         openapi: 3.0.1
         info:
           title: Scarlett API
-          version: "1.0"
+          version: '1.0'
         x-amazon-apigateway-binary-media-types:
           - multipart/form-data
         paths:
@@ -97,10 +97,10 @@ Resources:
                 type: aws_proxy
                 contentHandling: CONVERT_TO_TEXT
               responses:
-                "200":
+                '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: "*"
+                allowOrigin: '*'
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -120,10 +120,10 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                "200":
+                '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: "*"
+                allowOrigin: '*'
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -143,10 +143,10 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                "200":
+                '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: "*"
+                allowOrigin: '*'
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -166,10 +166,10 @@ Resources:
                 httpMethod: GET
                 type: aws_proxy
               responses:
-                "200":
+                '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: "*"
+                allowOrigin: '*'
                 allowMethods:
                   - GET
                   - OPTIONS
@@ -204,7 +204,7 @@ Resources:
             - Effect: Allow
               Action:
                 - states:StartExecution
-              Resource: "*"
+              Resource: '*'
       Events:
         ApiPOSTvalidatesession:
           Type: Api
@@ -234,9 +234,9 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - "@aws-sdk/*"
+          - '@aws-sdk/*'
           - aws-sdk
-          - "@forge/api"
+          - '@forge/api'
           - date-fns
           - jose
           - uuid
@@ -275,9 +275,9 @@ Resources:
         Platform: node
         Target: es2020
         External:
-          - "@aws-sdk/*"
+          - '@aws-sdk/*'
           - aws-sdk
-          - "@forge/api"
+          - '@forge/api'
           - date-fns
           - jose
           - uuid
@@ -308,7 +308,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
@@ -320,7 +320,7 @@ Resources:
       Policies:
         - PolicyName: StepFunctionsExecutionPolicy
           PolicyDocument:
-            Version: "2012-10-17"
+            Version: '2012-10-17'
             Statement:
               - Effect: Allow
                 Action:
@@ -330,7 +330,7 @@ Resources:
                   - sqs:DeleteMessage
                   - sqs:GetQueueAttributes
                   - states:StartExecution
-                Resource: "*"
+                Resource: '*'
               - Effect: Allow
                 Action:
                   - s3:PutObject
@@ -376,9 +376,9 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - "@aws-sdk/*"
+          - '@aws-sdk/*'
           - aws-sdk
-          - "@forge/api"
+          - '@forge/api'
           - date-fns
           - jose
           - uuid
