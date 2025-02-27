@@ -69,35 +69,11 @@ export default function App() {
     if (ticketsPollingIntervalRef.current) return;
     ticketsPollingIntervalRef.current = setInterval(async () => {
       try {
-        // const summary = await _getTicketsResult('test-operation');
-        const summary = {
-          created: 10,
-          edited: 5,
-          omited: 2,
-          error: 1,
-          projectId: 10002,
-        };
-        setTicketState(summary);
-
-        const totalProcessed =
-          summary.created + summary.edited + summary.omited + summary.error;
-        const totalExpected = 6;
-
         setMessage({
           message: 'Verificando acciones...',
           appereance: 'information',
         });
-
-        if (totalProcessed === totalExpected) {
-          clearInterval(ticketsPollingIntervalRef?.current);
-          ticketsPollingIntervalRef.current = null;
-          setMessage({
-            message: 'Acciones completadas',
-            appereance: 'success',
-          });
-          console.log('Polling detenido, proceso finalizado');
-        }
-      } catch (err) {
+        } catch (err) {
         console.error('Error al consultar resumen de tickets:', err);
       }
     }, 10000);
@@ -240,7 +216,7 @@ export default function App() {
             <div style={{ width: 600 }}>
               <Field
                 name="csv-file"
-                label="Seleccionaaa tu archivo CSV"
+                label="Selecciona tu archivo CSV"
                 isRequired
               >
                 {({ fieldProps, error }) => (
