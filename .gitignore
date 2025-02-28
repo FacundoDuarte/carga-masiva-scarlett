@@ -4,3 +4,4 @@ build/
 .turbo/
 .aws-sam/
 .build/
+dist/
