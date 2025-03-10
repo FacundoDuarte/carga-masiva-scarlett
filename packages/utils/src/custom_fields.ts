@@ -1,47 +1,57 @@
 import {parse, isValid, format} from 'date-fns';
 
 export const enum CF {
-  summary = 'summary',
-  status = 'status',
-  pais = 'customfield_17707',
-  tipo_documento = 'customfield_19888',
-  estado_validaciones = 'customfield_19889',
-  proveedor = 'customfield_19890',
-  proveedor_id = 'customfield_14357',
-  fecha_recepcion = 'customfield_19891',
-  asignacion_sap_sku = 'customfield_19892',
-  estado_integracion_sap = 'customfield_19893',
-  estado_conciliacion = 'customfield_19894',
-  estado_solicitudes = 'customfield_19895',
+  summary = 'summary', 
+  status = 'status', 
+  pais = 'customfield_17707', 
+  is = 'customfield_17745', 
+  proveedor_id = 'customfield_14357', 
+  correo_proveedor = 'customfield_18668', 
+  nombre_proveedor_sap = 'customfield_17710', 
+  uuid = 'customfield_18766', 
   orden_de_compra = 'customfield_16985',
-  fecha_emision = 'customfield_19896',
-  is = 'customfield_17745',
-  estado_de_envio = 'customfield_19897',
+  numero_factura = 'customfield_17712',
   monto = 'customfield_19195',
-  estado_integracion_sap_final = 'customfield_19898',
+  monto_diferencia = 'customfield_18667',
   scarlett_id = 'customfield_19899',
-  uuid = 'customfield_18766',
+  estado_conciliacion = 'customfield_19894',
+  asignacion_sap_sku = 'customfield_19892',
+  fecha_emision = 'customfield_19896',
+  fecha_recepcion = 'customfield_19891',
+  estado_integracion_sap = 'customfield_19893',
+  estado_de_envio = 'customfield_19897',
+  estado_validaciones = 'customfield_19889',
+  estado_solicitudes = 'customfield_19895',
+  sub_estado_en_jira = 'customfield_20977',
 }
-
+//Pasame todos los textos de StatusName a minuscula
 export const enum StatusName {
-  EnProceso = 'En Proceso',
-  Done = 'Done',
-  AprovacaoCompliance = 'Aprovação Compliance',
-  EncursoFinops = 'En curso FinOps',
-  Resolved = 'Resolved',
-  Reopened = 'Reopened',
-  Closed = 'Closed',
+  Abierto = 'abierto',
+  EnCursoAgenteRecepciones = 'en curso agente recepciones',
+  PendingProveedor = 'pending proveedor',
+  Rechazado = 'rechazado',
+  EncursoFinops = 'en curso finops',
+  EnAnalisisInboundOps = 'en analisis inbound ops',
+  EnCursoInStock = 'en curso in stock',
+  EnAnalisisComercial = 'en analisis comercial',
+  Done = 'done',
+  ApprovalComercial = 'approval comercial',
+  ApprovalFyC = 'approval f&c',
 }
 
 // Objeto para validación en runtime
 export const ValidStatusNames = {
-  EnProceso: 'En Proceso',
-  Done: 'Done',
-  AprovacaoCompliance: 'Aprovação Compliance',
-  EncursoFinops: 'En curso FinOps',
-  Resolved: 'Resolved',
-  Reopened: 'Reopened',
-  Closed: 'Closed',
+  Abierto: 'abierto',
+  EnCursoAgenteRecepciones: 'en curso agente recepciones',
+  PendingProveedor: 'pending proveedor',
+  Rechazado: 'rechazado',
+  EncursoFinops: 'en curso finops',
+  EnAnalisisInboundOps: 'en analisis inbound ops',
+  EnCursoInStock: 'en curso in stock',
+  EnAnalisisComercial: 'en analisis comercial',
+  Done: 'done',
+  ApprovalComercial: 'approval comercial',
+  ApprovalFyC: 'approval f&c',
 } as const;
 
 export type ValidStatusType = (typeof ValidStatusNames)[keyof typeof ValidStatusNames];
@@ -69,36 +79,41 @@ export const enum CsvRowHeaders {
 export type CsvRow = Record<CsvRowHeaders, string>;
 
 export const scarlettMapping: CustomFieldMapping = {
-  [CF.scarlett_id]: (row: Partial<CsvRow>) => [row[CsvRowHeaders.uuid] || ''],
   [CF.pais]: (row: Partial<CsvRow>) => ({value: row[CsvRowHeaders.pais] || ''}),
-  [CF.tipo_documento]: (row: Partial<CsvRow>) => row[CsvRowHeaders.documentType] || '',
+  [CF.uuid]: (row: Partial<CsvRow>) => row[CsvRowHeaders.uuid] || '',
+  [CF.scarlett_id]: (row: Partial<CsvRow>) => [row[CsvRowHeaders.uuid] || ''],
   [CF.estado_validaciones]: (row: Partial<CsvRow>) => row[CsvRowHeaders.estadoDeValidaciones] || '',
+  [CF.nombre_proveedor_sap]: (row: Partial<CsvRow>) => row[CsvRowHeaders.proveedor] || '',
   [CF.proveedor_id]: (row: Partial<CsvRow>) => row[CsvRowHeaders.proveedorId] || '',
   [CF.fecha_recepcion]: (row: Partial<CsvRow>) =>
     parseAndFormatDate(row[CsvRowHeaders.fechaDeRecepcion] || ''),
-  [CF.asignacion_sap_sku]: (row: Partial<CsvRow>) => row[CsvRowHeaders.asignacionSapSku] || '',
-  [CF.estado_conciliacion]: (row: Partial<CsvRow>) => row[CsvRowHeaders.estadoDeConciliacion] || '',
-  [CF.estado_solicitudes]: (row: Partial<CsvRow>) =>
-    row[CsvRowHeaders.estadoDeLasSolicitudes] || '',
   [CF.orden_de_compra]: (row: Partial<CsvRow>) => row[CsvRowHeaders.ordenDeCompra] || '',
   [CF.fecha_emision]: (row: Partial<CsvRow>) =>
     parseAndFormatDate(row[CsvRowHeaders.fechaDeEmision] || ''),
   [CF.is]: (row: Partial<CsvRow>) => row[CsvRowHeaders.numeroDeEnvio] || '',
-  [CF.estado_de_envio]: (row: Partial<CsvRow>) => row[CsvRowHeaders.estadoDeEnvio] || '',
   [CF.monto]: (row: Partial<CsvRow>) => parseInt(row[CsvRowHeaders.monto] || '0'),
-  [CF.uuid]: (row: Partial<CsvRow>) => [row[CsvRowHeaders.uuid] || ''],
-  [CF.estado_integracion_sap_final]: (row: Partial<CsvRow>) =>
+  [CF.estado_de_envio]: (row: Partial<CsvRow>) => row[CsvRowHeaders.estadoDeEnvio] || '',
+  [CF.estado_integracion_sap]: (row: Partial<CsvRow>) =>
     row[CsvRowHeaders.estadoIntegracionSapFinal] || '',
+  [CF.asignacion_sap_sku]: (row: Partial<CsvRow>) => row[CsvRowHeaders.asignacionSapSku] || '',
+  [CF.estado_conciliacion]: (row: Partial<CsvRow>) => row[CsvRowHeaders.estadoDeConciliacion] || '',
+  [CF.estado_solicitudes]: (row: Partial<CsvRow>) =>
+    row[CsvRowHeaders.estadoDeLasSolicitudes] || '',
+  [CF.sub_estado_en_jira]: (row: Partial<CsvRow>) => row[CsvRowHeaders.subEstadoEnJira] || '',
 };
 
 export const statusMapping: TransitionMapping = {
-  [StatusName.EnProceso]: 61,
-  [StatusName.Done]: 81,
-  [StatusName.AprovacaoCompliance]: 71,
-  [StatusName.EncursoFinops]: 51,
-  [StatusName.Resolved]: 31,
-  [StatusName.Reopened]: 41,
-  [StatusName.Closed]: 21,
+  [StatusName.Abierto]: 461,
+  [StatusName.EnCursoAgenteRecepciones]: 411,
+  [StatusName.PendingProveedor]: 451,
+  [StatusName.Rechazado]: 11,
+  [StatusName.EncursoFinops]: 331,
+  [StatusName.EnAnalisisInboundOps]: 441,
+  [StatusName.EnCursoInStock]: 431,
+  [StatusName.EnAnalisisComercial]: 421,
+  [StatusName.Done]: 231,
+  [StatusName.ApprovalComercial]: 371,
+  [StatusName.ApprovalFyC]: 361,
 };
 
 export type TransitionMapping = {

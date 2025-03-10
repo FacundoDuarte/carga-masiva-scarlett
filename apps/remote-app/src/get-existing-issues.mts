@@ -12,7 +12,7 @@ import {
   OperationPayload,
 } from '/opt/utils/index.js';
 
-const ISSUE_TYPE_ID = 11871;
+const ISSUE_TYPE_ID = 11504;
 
 export default async function post(request: Request): Promise<Response> {
   try {
@@ -92,10 +92,10 @@ export default async function post(request: Request): Promise<Response> {
       return new Response('Invalid request body: Items array is required', {status: 400});
     }
 
-    rows = rows.filter((row: Record<CsvRowHeaders, string>) => row[CsvRowHeaders.uuid] !== '0');
+    rows = rows.filter((row: Record<CsvRowHeaders, string>) => row[CsvRowHeaders.subEstadoEnJira] !== 'No aplica');
     if (!rows.length) {
-      console.error('All rows have uuid 0');
-      return new Response('All rows have uuid 0', {status: 200});
+      console.error('All rows have uuid 0 o no aplica');
+      return new Response('All rows have uuid 0 no aplica', {status: 200});
     }
     const scarlettIds: string[] = rows.map((row) => row[CsvRowHeaders.uuid] as string);
 
@@ -120,7 +120,7 @@ export default async function post(request: Request): Promise<Response> {
         key: undefined,
         fields: {
           summary: row[CsvRowHeaders.uuid],
-          status: {name: StatusName.AprovacaoCompliance as string},
+          status: {name: StatusName.Abierto as string},
         },
       };
       // Create base issue structure
@@ -180,5 +180,5 @@ function checkTransitionAvailable(
 
 //Necesito crearme en typescript una función auxiliar que reciba un string y me permita validar que es parte del enumerado StatusName
 function isValidStatus(status: string): status is ValidStatusType {
-  return Object.values(ValidStatusNames).includes(status as ValidStatusType);
+  return Object.values(ValidStatusNames).includes(status.toLocaleLowerCase() as ValidStatusType);
 }
