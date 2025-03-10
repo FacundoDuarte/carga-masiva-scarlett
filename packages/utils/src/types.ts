@@ -20,13 +20,18 @@ export interface Job {
 }
 
 export type TicketStates = {
-  created: number;
-  edited: number;
+  succeeded: number;
   omited: number;
-  error: number;
-  projectId: number;
+  failed: number;
+  total: number;
 };
-
+export type invokeCsvOperations = {
+  status: number,
+  body: {
+    success: boolean,
+    fileId: string
+  }
+}
 export type Issue = {
   key: string | undefined;
   fields: {

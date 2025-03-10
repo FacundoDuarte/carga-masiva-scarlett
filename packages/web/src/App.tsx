@@ -8,7 +8,8 @@ import { view, invokeRemote } from '@forge/bridge';
 import { FullContext } from '@forge/bridge/out/types';
 import SectionMessage, { Appearance } from '@atlaskit/section-message';
 import { DynamicTableStateless } from '@atlaskit/dynamic-table';
-import { TicketStates } from 'utils/types';
+import { TicketStates } from 'utils/src/types';
+import { json } from 'stream/consumers';
 
 const enum Status {
   init,
@@ -34,11 +35,10 @@ export default function App() {
 
   // Estado para almacenar el resumen de tickets
   const [ticketsState, setTicketState] = useState<TicketStates>({
-    created: 0,
-    edited: 0,
+    succeeded: 0,
     omited: 0,
-    error: 0,
-    projectId: 0,
+    failed: 0,
+    total: 0,
   });
 
   // Ref para el intervalo del polling del resumen
@@ -65,10 +65,11 @@ export default function App() {
     };
   }, []);
 
-  const ticketsResult = () => {
-    if (ticketsPollingIntervalRef.current) return;
-    ticketsPollingIntervalRef.current = setInterval(async () => {
+  const ticketsResult = async (executionArn: string) => {
       try {
+        const test = await _getStatusStateMachine(executionArn);
+        console.log("test: " + test);
+        
         setMessage({
           message: 'Verificando acciones...',
           appereance: 'information',
@@ -76,7 +77,6 @@ export default function App() {
         } catch (err) {
         console.error('Error al consultar resumen de tickets:', err);
       }
-    }, 10000);
   };
 
   // Manejador para subir el archivo CSV
@@ -169,12 +169,14 @@ export default function App() {
 
     try {
       setIsProcessing(Status.inprogress);
-      const executionId = await _invokeCsvOperations(
+      const fileId = await _invokeCsvOperations(
         objectKey,
         context.extension.project.id
       );
-      setExecutionId(executionId);
-      ticketsResult();
+      console.log("file id: " ,fileId);
+      
+      setExecutionId(fileId);
+      ticketsResult(fileId);
       setMessage({
         message: 'Operaciones iniciadas con éxito',
         appereance: 'information',
@@ -269,11 +271,7 @@ export default function App() {
               cells: [
                 {
                   key: 'creado',
-                  content: ticketsState.created,
-                },
-                {
-                  key: 'editado',
-                  content: ticketsState.edited,
+                  content: ticketsState.succeeded,
                 },
                 {
                   key: 'omitido',
@@ -281,7 +279,11 @@ export default function App() {
                 },
                 {
                   key: 'error',
-                  content: ticketsState.error,
+                  content: ticketsState.failed,
+                },
+                {
+                  key: 'total',
+                  content: ticketsState.total,
                 },
               ],
             },
@@ -304,6 +306,25 @@ async function _invokeCsvOperations(
       fileId: s3Key,
     },
   });
+  console.log("execution test: ", res.executionId);
+  console.log("res: ", res);
+  console.log("Execution IDDD: ", res["body"]["executionId"]);
+  const response = res.executionId;
+  const executionId = res["body"]["executionId"]
+  return executionId;
+}
+
+async function _getStatusStateMachine(
+  executionArn: string
+): Promise<TicketStates> {
+  const res = await invokeRemote<{stateMachineStatus: TicketStates}>({
+    path: '/Prod/executions',
+    method: "POST",
+    body: {
+      executionArn: executionArn
+    }
+  })
   console.log(res);
-  return res.executionId;
+  
+  return res.stateMachineStatus;
 }

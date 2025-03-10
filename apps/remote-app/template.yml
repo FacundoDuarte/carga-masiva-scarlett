@@ -216,6 +216,34 @@ Resources:
           Path: /validate-session
           Method: POST
           RestApiId: !Ref Api
+  GetStateMachineStatus:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: !Sub
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: GetStateMachineStatus
+      CodeUri: ./dist
+      Handler: get-statemachine-status.default
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - states:DescribeStateMachine
+                - states:DescribeExecution
+              Resource: '*'
+      Events:
+        ApiPOSTgetstatemachinestatus:
+          Type: Api
+          Properties:
+            Path: /executions
+            Method: POST
+            RestApiId: !Ref Api
+    Metadata:
+      BuildMethod: makefile
   ExecuteOperationFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -420,7 +448,7 @@ Resources:
         Sourcemap: false
 
 Outputs:
-  ValidateSessionFunctionUrl:
+  GetStateMachineStatusUrl:
     Description: Validate Session Function Url
     Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod/execute
   ApiUrl:
