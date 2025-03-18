@@ -1,14 +1,14 @@
 import {parse, isValid, format} from 'date-fns';
 
 export const enum CF {
-  summary = 'summary', 
-  status = 'status', 
-  pais = 'customfield_17707', 
-  is = 'customfield_17745', 
-  proveedor_id = 'customfield_14357', 
-  correo_proveedor = 'customfield_18668', 
-  nombre_proveedor_sap = 'customfield_17710', 
-  uuid = 'customfield_18766', 
+  summary = 'summary',
+  status = 'status',
+  pais = 'customfield_17707',
+  is = 'customfield_17745',
+  proveedor_id = 'customfield_14357',
+  correo_proveedor = 'customfield_18668',
+  nombre_proveedor_sap = 'customfield_17710',
+  uuid = 'customfield_18766',
   orden_de_compra = 'customfield_16985',
   numero_factura = 'customfield_17712',
   monto = 'customfield_19195',
@@ -23,9 +23,11 @@ export const enum CF {
   estado_validaciones = 'customfield_19889',
   estado_solicitudes = 'customfield_19895',
   sub_estado_en_jira = 'customfield_20977',
+  nombre_del_proveedor = 'customfield_14142',
 }
-//Pasame todos los textos de StatusName a minuscula
+
 export const enum StatusName {
+  Default = 'abierto',
   Abierto = 'abierto',
   EnCursoAgenteRecepciones = 'en curso agente recepciones',
   PendingProveedor = 'pending proveedor',
@@ -37,6 +39,7 @@ export const enum StatusName {
   Done = 'done',
   ApprovalComercial = 'approval comercial',
   ApprovalFyC = 'approval f&c',
+  EnProcesamiento = 'en procesamiento',
 }
 
 // Objeto para validación en runtime
@@ -52,6 +55,7 @@ export const ValidStatusNames = {
   Done: 'done',
   ApprovalComercial: 'approval comercial',
   ApprovalFyC: 'approval f&c',
+  EnProcesamiento: 'en procesamiento',
 } as const;
 
 export type ValidStatusType = (typeof ValidStatusNames)[keyof typeof ValidStatusNames];
@@ -65,6 +69,7 @@ export const enum CsvRowHeaders {
   proveedorId = 'Proveedor ID',
   fechaDeRecepcion = 'Fecha de recepción',
   asignacionSapSku = 'Asignación de SAP SKU',
+  estadoIntegracionSap = 'Estado IntegraciónSAP',
   estadoDeConciliacion = 'Estado de conciliación',
   estadoDeLasSolicitudes = 'Estado de las solicitudes',
   ordenDeCompra = 'Orden de compra',
@@ -72,7 +77,7 @@ export const enum CsvRowHeaders {
   numeroDeEnvio = 'Número de envío',
   estadoDeEnvio = 'Estado de envío',
   monto = 'Monto',
-  estadoIntegracionSapFinal = 'Estado SAP',
+  estadoSap = 'Estado SAP',
   estadoEnJira = 'Estado en Jira',
   subEstadoEnJira = 'Sub - Estado en Jira',
 }
@@ -86,20 +91,24 @@ export const scarlettMapping: CustomFieldMapping = {
   [CF.nombre_proveedor_sap]: (row: Partial<CsvRow>) => row[CsvRowHeaders.proveedor] || '',
   [CF.proveedor_id]: (row: Partial<CsvRow>) => row[CsvRowHeaders.proveedorId] || '',
   [CF.fecha_recepcion]: (row: Partial<CsvRow>) =>
-    parseAndFormatDate(row[CsvRowHeaders.fechaDeRecepcion] || ''),
-  [CF.orden_de_compra]: (row: Partial<CsvRow>) => row[CsvRowHeaders.ordenDeCompra] || '',
+    row[CsvRowHeaders.fechaDeRecepcion]
+      ? parseAndFormatDate(row[CsvRowHeaders.fechaDeRecepcion])
+      : undefined,
+  [CF.orden_de_compra]: (row: Partial<CsvRow>) => row[CsvRowHeaders.ordenDeCompra] || undefined,
   [CF.fecha_emision]: (row: Partial<CsvRow>) =>
-    parseAndFormatDate(row[CsvRowHeaders.fechaDeEmision] || ''),
-  [CF.is]: (row: Partial<CsvRow>) => row[CsvRowHeaders.numeroDeEnvio] || '',
+    row[CsvRowHeaders.fechaDeEmision]
+      ? parseAndFormatDate(row[CsvRowHeaders.fechaDeEmision])
+      : undefined,
+  [CF.is]: (row: Partial<CsvRow>) => row[CsvRowHeaders.numeroDeEnvio] || undefined,
   [CF.monto]: (row: Partial<CsvRow>) => parseInt(row[CsvRowHeaders.monto] || '0'),
   [CF.estado_de_envio]: (row: Partial<CsvRow>) => row[CsvRowHeaders.estadoDeEnvio] || '',
-  [CF.estado_integracion_sap]: (row: Partial<CsvRow>) =>
-    row[CsvRowHeaders.estadoIntegracionSapFinal] || '',
+  [CF.estado_integracion_sap]: (row: Partial<CsvRow>) => row[CsvRowHeaders.estadoSap] || '',
   [CF.asignacion_sap_sku]: (row: Partial<CsvRow>) => row[CsvRowHeaders.asignacionSapSku] || '',
   [CF.estado_conciliacion]: (row: Partial<CsvRow>) => row[CsvRowHeaders.estadoDeConciliacion] || '',
   [CF.estado_solicitudes]: (row: Partial<CsvRow>) =>
     row[CsvRowHeaders.estadoDeLasSolicitudes] || '',
   [CF.sub_estado_en_jira]: (row: Partial<CsvRow>) => row[CsvRowHeaders.subEstadoEnJira] || '',
+  [CF.nombre_del_proveedor]: (row: Partial<CsvRow>) => row[CsvRowHeaders.proveedor] || '',
 };
 
 export const statusMapping: TransitionMapping = {
@@ -114,6 +123,7 @@ export const statusMapping: TransitionMapping = {
   [StatusName.Done]: 231,
   [StatusName.ApprovalComercial]: 371,
   [StatusName.ApprovalFyC]: 361,
+  [StatusName.EnProcesamiento]: 471,
 };
 
 export type TransitionMapping = {
@@ -121,7 +131,9 @@ export type TransitionMapping = {
 };
 
 export type CustomFieldMapping = {
-  [x in CF]?: (row: Partial<CsvRow>) => string | string[] | number | {id: number} | {value: string};
+  [x in CF]?: (
+    row: Partial<CsvRow>,
+  ) => string | string[] | number | {id: number} | {value: string} | undefined;
 };
 
 /**

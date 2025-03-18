@@ -1,22 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Form, { Field, ErrorMessage } from '@atlaskit/form';
-import TextField from '@atlaskit/textfield';
-import { ButtonGroup } from '@atlaskit/button';
-import Button from '@atlaskit/button/new';
 import { view, invokeRemote } from '@forge/bridge';
-// import {  } from '@forge/api';
 import { FullContext } from '@forge/bridge/out/types';
-import SectionMessage, { Appearance } from '@atlaskit/section-message';
-import { DynamicTableStateless } from '@atlaskit/dynamic-table';
-import { TicketStates } from 'utils/src/types';
-import { json } from 'stream/consumers';
+import type { ItemCounts } from 'utils/src/types';
 
-const enum Status {
-  init,
-  loaded,
-  inprogress,
-  done,
-}
+// Importamos el componente Dashboard y el enum Status
+import Dashboard, { Status } from './component/Dashboard';
 
 export default function App() {
   // Estado para el archivo CSV y el contexto
@@ -31,14 +19,20 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState<Status>(Status.init);
 
   // Estado para el operationId que se obtiene al invocar la operación con el CSV
-  const [executionId, setExecutionId] = useState<string | null>(null);
+  const [execution, setExecution] = useState<string | null>(null);
+
+  const [templateUrl, setTemplateUrl] = useState<string | null>(null);
 
   // Estado para almacenar el resumen de tickets
-  const [ticketsState, setTicketState] = useState<TicketStates>({
+  const [ticketsState, setTicketState] = useState<ItemCounts>({
+    pending: 0,
+    running: 0,
     succeeded: 0,
-    omited: 0,
     failed: 0,
+    timedOut: 0,
+    aborted: 0,
     total: 0,
+    finished: 0,
   });
 
   // Ref para el intervalo del polling del resumen
@@ -51,6 +45,8 @@ export default function App() {
       try {
         const contextData = await view.getContext();
         setContext(contextData);
+        const templateUrl = await _downloadTemplate();
+        setTemplateUrl(templateUrl);
       } catch (error) {
         console.error('Error al obtener el contexto:', error);
       }
@@ -65,18 +61,92 @@ export default function App() {
     };
   }, []);
 
-  const ticketsResult = async (executionArn: string) => {
-      try {
-        const test = await _getStatusStateMachine(executionArn);
-        console.log("test: " + test);
-        
-        setMessage({
-          message: 'Verificando acciones...',
-          appereance: 'information',
-        });
-        } catch (err) {
-        console.error('Error al consultar resumen de tickets:', err);
+  const ticketsResult = async (executionId: string) => {
+    try {
+      // Esperar 3 segundos antes de la primera consulta para dar tiempo a que la máquina de estados se inicialice
+      console.log('Esperando 3 segundos antes de la primera consulta...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Get initial status
+      const status = await _getStatusStateMachine(executionId);
+      console.log('Initial state machine status:', status);
+
+      // Update ticket states with the received counts
+      setTicketState({
+        succeeded: status.succeeded || 0,
+        failed: status.failed || 0,
+        pending: status.pending || 0,
+        total: status.total || 0,
+        running: status.running || 0,
+        timedOut: status.timedOut || 0,
+        aborted: status.aborted || 0,
+        finished: status.finished || 0,
+      });
+
+      // Set up polling every 5 seconds
+      if (ticketsPollingIntervalRef.current) {
+        clearInterval(ticketsPollingIntervalRef.current);
       }
+
+      ticketsPollingIntervalRef.current = setInterval(async () => {
+        try {
+          // Check if we're still processing
+          if (isProcessing !== Status.inprogress) {
+            if (ticketsPollingIntervalRef.current) {
+              clearInterval(ticketsPollingIntervalRef.current);
+              ticketsPollingIntervalRef.current = null;
+            }
+            return;
+          }
+
+          const updatedStatus = await _getStatusStateMachine(executionId);
+          console.log('Updated state machine status:', updatedStatus);
+
+          // Update ticket states with the latest counts
+          setTicketState({
+            succeeded: updatedStatus.succeeded || 0,
+            failed: updatedStatus.failed || 0,
+            pending: updatedStatus.pending || 0,
+            total: updatedStatus.total || 0,
+            running: updatedStatus.running || 0,
+            timedOut: updatedStatus.timedOut || 0,
+            aborted: updatedStatus.aborted || 0,
+            finished: updatedStatus.finished || 0,
+          });
+
+          // Si hay elementos totales y todos están terminados, detener el polling
+          // Pero solo si hay al menos un elemento total y ha pasado al menos 10 segundos desde el inicio
+          const hasItems = updatedStatus.total > 0;
+          const allFinished = updatedStatus.finished === updatedStatus.total;
+          const hasProcessedItems = updatedStatus.finished > 0;
+          
+          if (hasItems && allFinished && hasProcessedItems) {
+            setIsProcessing(Status.done);
+            if (ticketsPollingIntervalRef.current) {
+              clearInterval(ticketsPollingIntervalRef.current);
+              ticketsPollingIntervalRef.current = null;
+            }
+            setMessage({
+              message: 'Procesamiento completado',
+              appereance: 'success',
+            });
+          }
+        } catch (error) {
+          console.error('Error polling state machine status:', error);
+          if (ticketsPollingIntervalRef.current) {
+            clearInterval(ticketsPollingIntervalRef.current);
+            ticketsPollingIntervalRef.current = null;
+          }
+        }
+      }, 5000); // Poll every 5 seconds
+
+      setMessage({
+        message: 'Verificando acciones...',
+        appereance: 'information',
+      });
+    } catch (err) {
+      console.error('Error al consultar resumen de tickets:', err);
+    }
   };
 
   // Manejador para subir el archivo CSV
@@ -169,135 +239,62 @@ export default function App() {
 
     try {
       setIsProcessing(Status.inprogress);
-      const fileId = await _invokeCsvOperations(
+      const { executionId } = await _invokeCsvOperations(
         objectKey,
         context.extension.project.id
       );
-      console.log("file id: " ,fileId);
-      
-      setExecutionId(fileId);
-      ticketsResult(fileId);
+      console.log('file id: ', executionId);
+
+      setExecution(executionId);
+
+      ticketsResult(executionId);
       setMessage({
         message: 'Operaciones iniciadas con éxito',
         appereance: 'information',
       });
+      // Ya no establecemos el estado como 'done' aquí
+      // El estado se establecerá como 'done' cuando el polling detecte que todo está terminado
     } catch (err) {
       console.error('Error al iniciar operaciones:', err);
       setMessage({
         message: `Error al iniciar operaciones: ${err}`,
         appereance: 'error',
       });
-    } finally {
+      // Solo establecemos el estado como 'done' en caso de error
       setIsProcessing(Status.done);
     }
   };
 
-  async function _downloadTemplate() {
+  async function _downloadTemplate(): Promise<string> {
     const payload = await invokeRemote({
       path: '/Prod/download-template',
       method: 'GET',
+      headers: {
+        Accept: '*/*',
+        redirect: 'follow',
+      },
     });
-    return payload;
+    console.log('payload: ', payload);
+    return payload['body']['url'];
   }
 
   return (
-    <div style={{ margin: '16px auto', fontFamily: 'sans-serif' }}>
-      <h1 style={{ color: '#fff' }}>Sube el archivo CSV</h1>
-
-      {message && (
-        <div style={{ marginBottom: '1rem' }}>
-          <SectionMessage appearance={`${message.appereance as Appearance}`}>
-            {message.message}
-          </SectionMessage>
-        </div>
-      )}
-
-      <Form onSubmit={handleSubmit}>
-        {({ formProps }) => (
-          <form {...formProps} style={{ marginBottom: '2rem' }}>
-            <div style={{ width: 600 }}>
-              <Field
-                name="csv-file"
-                label="Selecciona tu archivo CSV"
-                isRequired
-              >
-                {({ fieldProps, error }) => (
-                  <>
-                    <TextField
-                      {...fieldProps}
-                      type="file"
-                      onChange={handleFileChange}
-                    />
-                    {error && <ErrorMessage>{error}</ErrorMessage>}
-                  </>
-                )}
-              </Field>
-            </div>
-            <div style={{ marginTop: 'var(--ds-space-200)' }}>
-              {(isProcessing === Status.init ||
-                isProcessing === Status.loaded) && (
-                <ButtonGroup>
-                  <Button onClick={_downloadTemplate}>
-                    Descargar template
-                  </Button>
-                  <Button
-                    type="submit"
-                    appearance="primary"
-                    isDisabled={isProcessing !== Status.loaded}
-                  >
-                    Ejecutar cambios
-                  </Button>
-                </ButtonGroup>
-              )}
-            </div>
-          </form>
-        )}
-      </Form>
-
-      {isProcessing !== Status.init && executionId && (
-        <DynamicTableStateless
-          isLoading={isProcessing === Status.inprogress}
-          head={{
-            cells: [
-              { key: 'creado', content: 'Creado' },
-              { key: 'editado', content: 'Editado' },
-              { key: 'omitido', content: 'Omitido' },
-              { key: 'error', content: 'Error' },
-            ],
-          }}
-          rows={[
-            {
-              key: 'summary',
-              cells: [
-                {
-                  key: 'creado',
-                  content: ticketsState.succeeded,
-                },
-                {
-                  key: 'omitido',
-                  content: ticketsState.omited,
-                },
-                {
-                  key: 'error',
-                  content: ticketsState.failed,
-                },
-                {
-                  key: 'total',
-                  content: ticketsState.total,
-                },
-              ],
-            },
-          ]}
-        />
-      )}
-    </div>
+    <Dashboard
+      message={message}
+      handleSubmit={handleSubmit}
+      handleFileChange={handleFileChange}
+      templateUrl={templateUrl}
+      isProcessing={isProcessing}
+      executionId={execution}
+      ticketsState={ticketsState}
+    />
   );
 }
 
 async function _invokeCsvOperations(
   s3Key: string,
   projectId: string
-): Promise<string> {
+): Promise<{ executionId: string }> {
   const res = await invokeRemote<{ executionId: string }>({
     path: '/Prod/validate-session',
     method: 'POST',
@@ -306,25 +303,22 @@ async function _invokeCsvOperations(
       fileId: s3Key,
     },
   });
-  console.log("execution test: ", res.executionId);
-  console.log("res: ", res);
-  console.log("Execution IDDD: ", res["body"]["executionId"]);
-  const response = res.executionId;
-  const executionId = res["body"]["executionId"]
-  return executionId;
+  console.log('res: ', res);
+  const executionId = res['body']['executionId'];
+  return { executionId };
 }
 
 async function _getStatusStateMachine(
-  executionArn: string
-): Promise<TicketStates> {
-  const res = await invokeRemote<{stateMachineStatus: TicketStates}>({
+  executionId: string
+): Promise<ItemCounts> {
+  const res = await invokeRemote<{ counts: ItemCounts }>({
     path: '/Prod/executions',
-    method: "POST",
+    method: 'POST',
     body: {
-      executionArn: executionArn
-    }
-  })
-  console.log(res);
-  
-  return res.stateMachineStatus;
+      executionArn: executionId,
+    },
+  });
+  console.log('res: ', res);
+
+  return res['body']['counts'];
 }

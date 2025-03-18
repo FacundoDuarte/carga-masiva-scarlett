@@ -13,5 +13,5 @@
       "@utils": ["utils"]
     }
   },
-  "include": ["src/*.tsx"]
+  "include": ["src/**/*.tsx", "src/**/*.ts"]
 }

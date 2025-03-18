@@ -31,6 +31,7 @@ permissions:
     - write:jira-work
     - storage:app
     - read:app-system-token
+    - read:filter:jira
   content:
     styles:
       - "unsafe-inline"

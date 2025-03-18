@@ -12,10 +12,11 @@
   "dependencies": {
     "@smithy/core": "^3.1.4",
     "aws-lambda": "^1.0.7",
-    "jose": "^5.9.6"
+    "jose": "^5.9.6",
+    "@aws-sdk/client-sfn": "^3.750.0",
+    "aws-sdk": "^2.1692.0"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/bun": "^1.2.2"
+    "typescript": "^5.0.0"
   }
 }

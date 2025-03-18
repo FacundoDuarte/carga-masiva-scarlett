@@ -17,6 +17,7 @@
     "deploy:sam": "cd apps/remote-app && chmod +x deploy.sh && ./deploy.sh",
     "preview": "cd apps/remote-app && chmod +x deploy.sh && ./deploy.sh --preview",
     "deploy:forge": "cd apps/forge-app && forge deploy",
+    "deploy:prod": "cd apps/forge-app && forge deploy -e production",
     "tunnel": "cd apps/forge-app && forge tunnel",
     "build:web": "turbo run build --filter=web",
     "build:manifest": "turbo run build --filter=manifest",
@@ -28,10 +29,7 @@
     "user:facu:auto": ". ./change-user.sh --facu --auto"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.0",
-    "turbo": "^2.4.1"
-  },
-  "dependencies": {
-    "bun": "^1.2.2"
+    "@types/bun": "latest",
+    "turbo": "^2.4.4"
   }
 }

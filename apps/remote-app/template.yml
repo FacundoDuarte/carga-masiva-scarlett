@@ -61,14 +61,29 @@ Resources:
               - POST
               - HEAD
             AllowedOrigins:
-              - "*"
+              - '*'
             AllowedHeaders:
-              - "*"
+              - '*'
       LifecycleConfiguration:
         Rules:
           - Id: DeleteOldFiles
             Status: Enabled
             ExpirationInDays: 30
+
+  RateLimitControlTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${AWS::StackName}-rate-limit-control
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: executionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: executionId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
   Api:
     Type: AWS::Serverless::Api
     Properties:
@@ -78,7 +93,7 @@ Resources:
         openapi: 3.0.1
         info:
           title: Scarlett API
-          version: "1.0"
+          version: '1.0'
         x-amazon-apigateway-binary-media-types:
           - multipart/form-data
         paths:
@@ -92,10 +107,33 @@ Resources:
                 type: aws_proxy
                 contentHandling: CONVERT_TO_TEXT
               responses:
-                "200":
+                '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: "*"
+                allowOrigin: '*'
+                allowMethods:
+                  - POST
+                  - OPTIONS
+                allowHeaders:
+                  - Content-Type
+                  - Authorization
+                  - X-Amz-Date
+                  - X-Api-Key
+                  - X-Amz-Security-Token
+                maxAge: 300
+          /executions:
+            post:
+              security: [] # This explicitly makes the endpoint public (no auth required)
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetStateMachineStatus.Arn}/invocations
+                passthroughBehavior: when_no_match
+                httpMethod: POST
+                type: aws_proxy
+              responses:
+                '200':
+                  description: Success
+              x-amazon-apigateway-cors:
+                allowOrigin: '*'
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -115,10 +153,10 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                "200":
+                '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: "*"
+                allowOrigin: '*'
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -138,10 +176,10 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                "200":
+                '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: "*"
+                allowOrigin: '*'
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -158,15 +196,16 @@ Resources:
               x-amazon-apigateway-integration:
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DownloadTemplate.Arn}/invocations
                 passthroughBehavior: when_no_match
-                httpMethod: GET
+                httpMethod: POST
                 type: aws_proxy
               responses:
-                "200":
+                '200':
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: "*"
+                allowOrigin: '*'
                 allowMethods:
                   - GET
+                  - POST
                   - OPTIONS
                 allowHeaders:
                   - Content-Type
@@ -199,7 +238,7 @@ Resources:
             - Effect: Allow
               Action:
                 - states:StartExecution
-              Resource: "*"
+              Resource: '*'
       Events:
         ApiPOSTvalidatesession:
           Type: Api
@@ -222,8 +261,8 @@ Resources:
       Description: !Sub
         - Stack ${AWS::StackName} Function ${ResourceName}
         - ResourceName: GetStateMachineStatus
-      CodeUri: ./dist
-      Handler: get-statemachine-status.default
+      CodeUri: ./src
+      Handler: get-statemachine-status.post
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
@@ -234,6 +273,8 @@ Resources:
               Action:
                 - states:DescribeStateMachine
                 - states:DescribeExecution
+                - states:DescribeMapRun
+                - states:ListMapRuns
               Resource: '*'
       Events:
         ApiPOSTgetstatemachinestatus:
@@ -257,9 +298,9 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - "@aws-sdk/*"
+          - '@aws-sdk/*'
           - aws-sdk
-          - "@forge/api"
+          - '@forge/api'
           - date-fns
           - jose
           - uuid
@@ -285,22 +326,22 @@ Resources:
                 - !GetAtt ScarletExecutionQueue.Arn
       Timeout: 30
       Tracing: Active
-  GetExistingIssuesFunction:
+  ParsingRowsFunction:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - get-existing-issues.mts
+          - parsing-rows.mts
         Bundle: true
         Minify: true
         Format: esm
         Platform: node
         Target: es2020
         External:
-          - "@aws-sdk/*"
+          - '@aws-sdk/*'
           - aws-sdk
-          - "@forge/api"
+          - '@forge/api'
           - date-fns
           - jose
           - uuid
@@ -308,7 +349,67 @@ Resources:
         TreeShaking: true
         Sourcemap: false
     Properties:
-      Handler: get-existing-issues.post
+      Handler: parsing-rows.post
+      CodeUri: ./src
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - S3CrudPolicy:
+            BucketName: !Ref ScarletStorageBucket
+
+  MatchExistingIssuesFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - match-existing-issues.mts
+        Bundle: true
+        Minify: true
+        Format: esm
+        Platform: node
+        Target: es2020
+        External:
+          - '@aws-sdk/*'
+          - aws-sdk
+          - '@forge/api'
+          - date-fns
+          - jose
+          - uuid
+          - bun
+        TreeShaking: true
+        Sourcemap: false
+    Properties:
+      Handler: match-existing-issues.post
+      CodeUri: ./src
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - S3CrudPolicy:
+            BucketName: !Ref ScarletStorageBucket
+
+  ValidateConditionFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - validate-condition.mts
+        Bundle: true
+        Minify: true
+        Format: esm
+        Platform: node
+        Target: es2020
+        External:
+          - '@aws-sdk/*'
+          - aws-sdk
+          - '@forge/api'
+          - date-fns
+          - jose
+          - uuid
+          - bun
+        TreeShaking: true
+        Sourcemap: false
+    Properties:
+      Handler: validate-condition.post
       CodeUri: ./src
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -320,18 +421,21 @@ Resources:
     Properties:
       DefinitionSubstitutions:
         ExecuteOperationFunction: !GetAtt ExecuteOperationFunction.Arn
-        GetExistingIssuesFunction: !GetAtt GetExistingIssuesFunction.Arn
+        ParsingRowsFunction: !GetAtt ParsingRowsFunction.Arn
+        MatchExistingIssuesFunction: !GetAtt MatchExistingIssuesFunction.Arn
+        ValidateConditionFunction: !GetAtt ValidateConditionFunction.Arn
         ScarletExecutionQueue: !Ref ScarletExecutionQueue
+        RateLimitControlTable: !Ref RateLimitControlTable
       Role: !GetAtt StateMachineExecutionRole.Arn
       Name: scarlet-execution-machine
-      DefinitionUri: statemachine.json
+      DefinitionUri: statemachine.asl.json
 
   # Rol de ejecución para la máquina de estado
   StateMachineExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
@@ -343,7 +447,7 @@ Resources:
       Policies:
         - PolicyName: StepFunctionsExecutionPolicy
           PolicyDocument:
-            Version: "2012-10-17"
+            Version: '2012-10-17'
             Statement:
               - Effect: Allow
                 Action:
@@ -353,13 +457,25 @@ Resources:
                   - sqs:DeleteMessage
                   - sqs:GetQueueAttributes
                   - states:StartExecution
-                Resource: "*"
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                Resource: '*'
               - Effect: Allow
                 Action:
                   - s3:PutObject
                   - s3:GetObject
                 Resource:
                   - !Sub ${ScarletStorageBucket.Arn}/*
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                Resource:
+                  - !GetAtt RateLimitControlTable.Arn
   GetUploadUrl:
     Type: AWS::Serverless::Function
     Properties:
@@ -399,9 +515,9 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - "@aws-sdk/*"
+          - '@aws-sdk/*'
           - aws-sdk
-          - "@forge/api"
+          - '@forge/api'
           - date-fns
           - jose
           - uuid
@@ -432,6 +548,14 @@ Resources:
             Path: /download-template
             Method: GET
             RestApiId: !Ref Api
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource:
+                - !Sub ${ScarletStorageBucket.Arn}/*
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

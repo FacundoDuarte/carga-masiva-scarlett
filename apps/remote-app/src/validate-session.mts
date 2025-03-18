@@ -112,7 +112,7 @@ export default async function post(request: Request): Promise<Response> {
 
     const message = new StartExecutionCommand({
       stateMachineArn: STATE_MACHINE_ARN,
-      name: `scarlet-${fileId}-${new Date().getTime()}`,
+      name: `scarlet-${fileId}`,
       traceHeader: `${traceId}-${spanId}`,
       input: JSON.stringify({
         filePath: `uploads/${fileId}.csv`,
@@ -136,6 +136,7 @@ export default async function post(request: Request): Promise<Response> {
         success: true,
         message: 'Session validated and task queued',
         executionId: fileId,
+        executionArn: machine.executionArn,
       }),
       {
         headers: {

@@ -1,0 +1,301 @@
+{
+    "Comment": "Distributed map that reads CSV file for order data and detects delayed orders",
+    "StartAt": "Operate Rows",
+    "States": {
+        "Operate Rows": {
+            "Type": "Map",
+            "ResultPath": "$.mapResults",
+            "Next": "CalculateResultSummary",
+            "ItemProcessor": {
+                "ProcessorConfig": {
+                    "Mode": "DISTRIBUTED",
+                    "ExecutionType": "EXPRESS"
+                },
+                "StartAt": "ParsingRows",
+                "States": {
+                    "ParsingRows": {
+                        "Type": "Task",
+                        "Resource": "arn:aws:states:::lambda:invoke",
+                        "Parameters": {
+                            "FunctionName": "${ParsingRowsFunction}",
+                            "Payload.$": "$"
+                        },
+                        "OutputPath": "$.Payload",
+                        "Catch": [
+                            {
+                                "ErrorEquals": [
+                                    "Lambda.NoItemsToProcess"
+                                ],
+                                "ResultPath": "$.error",
+                                "Next": "SuccessfulWithEmptyItems"
+                            },
+                            {
+                                "ErrorEquals": [
+                                    "States.ALL"
+                                ],
+                                "ResultPath": "$.error",
+                                "Next": "EndWithError"
+                            }
+                        ],
+                        "Next": "MatchExistingIssues"
+                    },
+                    "MatchExistingIssues": {
+                        "Type": "Task",
+                        "Resource": "arn:aws:states:::lambda:invoke",
+                        "Parameters": {
+                            "FunctionName": "${MatchExistingIssuesFunction}",
+                            "Payload.$": "$"
+                        },
+                        "OutputPath": "$.Payload",
+                        "Catch": [
+                            {
+                                "ErrorEquals": [
+                                    "Lambda.TooManyRequestsException"
+                                ],
+                                "ResultPath": "$.error",
+                                "Next": "ExtractRetryTime429ForMatching"
+                            },
+                            {
+                                "ErrorEquals": [
+                                    "Lambda.ServiceUnavailable"
+                                ],
+                                "ResultPath": "$.error",
+                                "Next": "ExtractRetryTime503ForMatching"
+                            },
+                            {
+                                "ErrorEquals": [
+                                    "Lambda.NoItemsToProcess"
+                                ],
+                                "ResultPath": "$.error",
+                                "Next": "SuccessfulWithEmptyItems"
+                            },
+                            {
+                                "ErrorEquals": [
+                                    "States.ALL"
+                                ],
+                                "ResultPath": "$.error",
+                                "Next": "EndWithError"
+                            }
+                        ],
+                        "Next": "ValidateCondition"
+                    },
+                    "ValidateCondition": {
+                        "Type": "Task",
+                        "Resource": "arn:aws:states:::lambda:invoke",
+                        "Parameters": {
+                            "FunctionName": "${ValidateConditionFunction}",
+                            "Payload.$": "$"
+                        },
+                        "OutputPath": "$.Payload",
+                        "Catch": [
+                            {
+                                "ErrorEquals": [
+                                    "Lambda.TooManyRequestsException"
+                                ],
+                                "ResultPath": "$.error",
+                                "Next": "ExtractRetryTime429ForValidation"
+                            },
+                            {
+                                "ErrorEquals": [
+                                    "Lambda.ServiceUnavailable"
+                                ],
+                                "ResultPath": "$.error",
+                                "Next": "ExtractRetryTime503ForValidation"
+                            },
+                            {
+                                "ErrorEquals": [
+                                    "Lambda.NoItemsToProcess"
+                                ],
+                                "ResultPath": "$.error",
+                                "Next": "SuccessfulWithEmptyItems"
+                            },
+                            {
+                                "ErrorEquals": [
+                                    "States.ALL"
+                                ],
+                                "ResultPath": "$.error",
+                                "Next": "EndWithError"
+                            }
+                        ],
+                        "Next": "Execute Operations"
+                    },
+                    "ExtractRetryTime429ForMatching": {
+                        "Type": "Pass",
+                        "Parameters": {
+                            "error.$": "$.error",
+                            "retrySeconds.$": "$.error.retryAfterSeconds"
+                        },
+                        "Next": "WaitForRateLimitMatching"
+                    },
+                    "ExtractRetryTime503ForMatching": {
+                        "Type": "Pass",
+                        "Parameters": {
+                            "error.$": "$.error",
+                            "retrySeconds": "60"
+                        },
+                        "Next": "WaitForRateLimitMatching"
+                    },
+                    "WaitForRateLimitMatching": {
+                        "Type": "Wait",
+                        "SecondsPath": "$.retrySeconds",
+                        "Next": "MatchExistingIssues"
+                    },
+                    "ExtractRetryTime429ForValidation": {
+                        "Type": "Pass",
+                        "Parameters": {
+                            "error.$": "$.error",
+                            "retrySeconds.$": "$.error.retryAfterSeconds"
+                        },
+                        "Next": "WaitForRateLimitValidation"
+                    },
+                    "ExtractRetryTime503ForValidation": {
+                        "Type": "Pass",
+                        "Parameters": {
+                            "error.$": "$.error",
+                            "retrySeconds": "60"
+                        },
+                        "Next": "WaitForRateLimitValidation"
+                    },
+                    "WaitForRateLimitValidation": {
+                        "Type": "Wait",
+                        "SecondsPath": "$.retrySeconds",
+                        "Next": "ValidateCondition"
+                    },
+                    "SuccessfulWithEmptyItems": {
+                        "Type": "Succeed",
+                        "Comment": "Termina exitosamente cuando no hay items para procesar"
+                    },
+                    "EndWithError": {
+                        "Type": "Fail",
+                        "Error": "Lambda.Unknown",
+                        "Cause": "Error durante la ejecución"
+                    },
+                    "Execute Operations": {
+                        "Type": "Map",
+                        "ItemsPath": "$.Items",
+                        "ItemProcessor": {
+                            "ProcessorConfig": {
+                                "Mode": "INLINE"
+                            },
+                            "StartAt": "Execute",
+                            "States": {
+                                "Execute": {
+                                    "Type": "Task",
+                                    "Resource": "arn:aws:states:::lambda:invoke",
+                                    "OutputPath": "$.Payload",
+                                    "Parameters": {
+                                        "FunctionName": "${ExecuteOperationFunction}",
+                                        "Payload.$": "$"
+                                    },
+                                    "Catch": [
+                                        {
+                                            "ErrorEquals": [
+                                                "Lambda.TooManyRequestsException"
+                                            ],
+                                            "ResultPath": "$.error",
+                                            "Next": "ExtractItemRetryTime429"
+                                        },
+                                        {
+                                            "ErrorEquals": [
+                                                "Lambda.ServiceUnavailable"
+                                            ],
+                                            "ResultPath": "$.error",
+                                            "Next": "ExtractItemRetryTime503"
+                                        },
+                                        {
+                                            "ErrorEquals": [
+                                                "States.ALL"
+                                            ],
+                                            "ResultPath": "$.error",
+                                            "Next": "HandleOtherError"
+                                        }
+                                    ],
+                                    "End": true
+                                },
+                                "ExtractItemRetryTime429": {
+                                    "Type": "Pass",
+                                    "Parameters": {
+                                        "error.$": "$.error",
+                                        "status": 429,
+                                        "errorMessage": "TooManyRequestsException - Rate Exceeded",
+                                        "retrySeconds": "$.error.retryAfterSeconds"
+                                    },
+                                    "Next": "WaitForItemRateLimit"
+                                },
+                                "ExtractItemRetryTime503": {
+                                    "Type": "Pass",
+                                    "Parameters": {
+                                        "error.$": "$.error",
+                                        "status": 503,
+                                        "errorMessage": "Service Unavailable",
+                                        "retrySeconds": 60
+                                    },
+                                    "Next": "WaitForItemRateLimit"
+                                },
+                                "WaitForItemRateLimit": {
+                                    "Type": "Wait",
+                                    "SecondsPath": "$.error.retrySeconds",
+                                    "Next": "Execute"
+                                },
+                                "HandleOtherError": {
+                                    "Type": "Pass",
+                                    "Parameters": {
+                                        "error.$": "$.error",
+                                        "status": 500,
+                                        "errorMessage.$": "States.Format('Unknown Error: {}', $.error.Cause)"
+                                    },
+                                    "End": true
+                                }
+                            }
+                        },
+                        "End": true
+                    }
+                }
+            },
+            "ItemReader": {
+                "Resource": "arn:aws:states:::s3:getObject",
+                "Parameters": {
+                    "Bucket.$": "$.bucketName",
+                    "Key.$": "$.filePath"
+                },
+                "ReaderConfig": {
+                    "InputType": "CSV",
+                    "CSVHeaderLocation": "FIRST_ROW"
+                }
+            },
+            "MaxConcurrency": 1000,
+            "Label": "OperateRows",
+            "ResultWriter": {
+                "Resource": "arn:aws:states:::s3:putObject",
+                "Parameters": {
+                    "Bucket.$": "$.bucketName",
+                    "Prefix.$": "States.Format('results/{}/detailed/', $.executionId)"
+                }
+            },
+            "ItemBatcher": {
+                "MaxItemsPerBatch": 10,
+                "BatchInput": {
+                    "apiBaseUrl.$": "$.apiBaseUrl",
+                    "forgeToken.$": "$.forgeToken",
+                    "bucketName.$": "$.bucketName",
+                    "cloudId.$": "$.cloudId",
+                    "executionId.$": "$.executionId",
+                    "projectId.$": "$.projectId",
+                    "client.$": "$.client"
+                }
+            }
+        },
+        "CalculateResultSummary": {
+            "Type": "Pass",
+            "Parameters": {
+                "summary": {
+                    "totalItems": 0,
+                    "processedItems": 0,
+                    "executionId.$": "$.executionId",
+                    "detailedResultsLocation.$": "States.Format('Resultados detallados guardados en S3: {}/{}', $.mapResults.ResultWriterDetails.Bucket, $.mapResults.ResultWriterDetails.Key)"
+                }
+            },
+            "End": true
+        }
+    }
+}

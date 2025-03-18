@@ -19,21 +19,26 @@ export interface Job {
   status: JobStatus;
 }
 
-export type TicketStates = {
+export type ItemCounts = {
+  pending: number;
+  running: number;
   succeeded: number;
-  omited: number;
   failed: number;
+  timedOut: number;
+  aborted: number;
   total: number;
+  finished: number; // Custom field for finished items (succeeded + failed + timedOut + aborted)
 };
 export type invokeCsvOperations = {
-  status: number,
+  status: number;
   body: {
-    success: boolean,
-    fileId: string
-  }
-}
+    success: boolean;
+    fileId: string;
+  };
+};
 export type Issue = {
   key: string | undefined;
+  id: number | undefined;
   fields: {
     project: {id: number};
     summary: string | undefined;
@@ -55,66 +60,30 @@ type CustomField = {
     | undefined
     | [];
 };
-export interface RequestPayload {
-  [x: string]: any;
-  [x: number]: any;
-}
 
-export interface IssueOperationsFromCsvPayload extends RequestPayload {
-  s3Key: string;
-  projectId: number;
-}
+export type OperationPayload = EditionChangePayload | TransitionPayload;
 
-export interface GetJobsStatusPayload extends RequestPayload {
-  jobsList: string[];
-}
-
-export interface GetIssueKeyPayload extends RequestPayload {
-  id: string;
-}
-
-export interface GetIssueStatusPayload extends RequestPayload {
-  issueKeys: string[];
-}
-
-export interface GetUploadUrlPayload extends RequestPayload {
-  fileName: string;
-}
-
-export type OperationPayload = {
-  method: 'PUT' | 'POST' | undefined;
+export type EditionChangePayload = {
   issue: Partial<Issue>;
+  method: 'PUT' | 'POST';
   change: {
     type: 'create' | 'update';
-    transitionId: number | undefined;
+    transitionId?: number;
+  };
+  credentials?: {
+    authToken: string;
+    apiBaseUrl: string;
   };
 };
-
-// export type Invoice = {
-//     project: { id: number };
-//     summary: string;
-//     pais: string;
-//     uuid: string;
-//     tipo_documento: string;
-//     estado_validaciones: string;
-//     proveedor: string;
-//     proveedor_id: string;
-//     fecha_recepcion: string;
-//     asignacion_sap_sku: string;
-//     estado_integracion_sap: string;
-//     estado_conciliacion: string;
-//     estado_solicitudes: string;
-//     orden_de_compra: string;
-//     fecha_emision: string;
-//     is: string;
-//     estado_de_envio: string;
-//     monto: string;
-//     estado_integracion_sap_final: string;
-//     scarlettId: string;
-//     method: string;
-//     key?: string;
-//     status?: {
-//       name: string;
-//       transitionId: string;
-//   };
-// };
+export type TransitionPayload = {
+  issue: Partial<Issue>;
+  method: 'PUT' | 'POST';
+  change: {
+    type: 'transition';
+    transitionId: number;
+  };
+  credentials?: {
+    authToken: string;
+    apiBaseUrl: string;
+  };
+};

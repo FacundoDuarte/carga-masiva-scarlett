@@ -1,4 +1,4 @@
-import { S3Client } from 'bun';
+import {S3Client} from 'bun';
 
 export default async function get(request: Request): Promise<Response> {
   try {
@@ -22,18 +22,12 @@ export default async function get(request: Request): Promise<Response> {
     const downloadUrl = file.presign({
       expiresIn: 3600,
     });
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        downloadUrl,
-      }),
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+    console.log('downloadUrl: ', downloadUrl);
+    return new Response(JSON.stringify({ url: downloadUrl }), {
+      headers: {
+        'Content-Type': 'application/json',
       },
-    );
+    });
   } catch (error) {
     console.error('Error generating download URL:', error);
     return new Response(
