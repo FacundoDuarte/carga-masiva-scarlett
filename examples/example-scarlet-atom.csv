@@ -1,10 +1,10 @@
 ﻿Pais;Número de documento;Tipo de documento;Estado de validaciones;Proveedor;Proveedor ID;Fecha de recepción;Asignación de SAP SKU;Estado Integración SAP;Estado de conciliación;Estado de las solicitudes;Orden de compra;Fecha de emisión;Número de envío;Estado de envío;Monto;Estado SAP;Estado en Jira;Sub - Estado en Jira
-Mexico;932dsw39eec3bd-7e49-4cd4-a942-bdc7460dabbe;Factura;Sin errores;COMERCIO EXCELENTE NORTE SUR;9600026684;22-01-2025;Completa;Ingresada;Por procesar; ;4000075924;22-01-2025;36745988;Confirmado;383803.42;Ingresada;En procesamiento;Inbound no Cerrado
-Mexico;C2dw3d5383774F-E79F-40AD-BA59-91BBFCA0649D;Factura;Con alertas;KIMBERLY CLARK DE MEXICO;9699193001;22-01-2025;Completa;Contabilización manual forzada;Con diferencias; ;4000070284;30-11-2024;35020621;Cerrado con cambios;57634.65;Contabilizada manualmente;Done;Contabilizada manualmente
-Mexico;C2s3w3s86C30AE-A1A7-4EF3-ADB4-7626D920B6A0;Factura;Con alertas;KIMBERLY CLARK DE MEXICO;9699193001;22-01-2025;Completa;"Error de contabilización
+Mexico;932ddsw39eec3bd-7e49-4cd4-a942-bdc7460dabbe;Factura;Sin errores;COMERCIO EXCELENTE NORTE SUR;9600026684;22-01-2025;Completa;Ingresada;Por procesar; ;4000075924;22-01-2025;36745988;Confirmado;383803.42;Ingresada;En procesamiento;Inbound no Cerrado
+Mexico;C2dwd3d5383774F-E79F-40AD-BA59-91BBFCA0649D;Factura;Con alertas;KIMBERLY CLARK DE MEXICO;9699193001;22-01-2025;Completa;Contabilización manual forzada;Con diferencias; ;4000070284;30-11-2024;35020621;Cerrado con cambios;57634.65;Contabilizada manualmente;En curso FinOps;Contabilizada manualmente
+Mexico;C2s3dw3s86C30AE-A1A7-4EF3-ADB4-7626D920B6A0;Factura;Con alertas;KIMBERLY CLARK DE MEXICO;9699193001;22-01-2025;Completa;"Error de contabilización
 El documento queda en estado parkeado por diferencia";Con diferencias; ;4000070284;30-11-2024;35020621;Cerrado con cambios;8170.49;Error de contabilización;En curso FinOps;Pendiente de revisión
-Mexico;82As3w3d26C41C-4312-4ABF-94AF-E234705BE488;Factura;Con alertas;KIMBERLY CLARK DE MEXICO;9699193001;22-01-2025;Completa;"Error de contabilización
+Mexico;82As3dw3d26C41C-4312-4ABF-94AF-E234705BE488;Factura;Con alertas;KIMBERLY CLARK DE MEXICO;9699193001;22-01-2025;Completa;"Error de contabilización
 El documento queda en estado parkeado por diferencia";Con diferencias; ;4000071205;30-11-2024;34949401;Cerrado con cambios;582756.49;Error de contabilización;En curso FinOps;Pendiente de revisión
-Mexico;724C3d31swFA26-8AC9-43D3-8B01-08EB36F63827;Factura;Con alertas;KIMBERLY CLARK DE MEXICO;9699193001;22-01-2025;Completa;"Error de contabilización
+Mexico;724C3dd31swFA26-8AC9-43D3-8B01-08EB36F63827;Factura;Con alertas;KIMBERLY CLARK DE MEXICO;9699193001;22-01-2025;Completa;"Error de contabilización
 ";Con diferencias; ;4000071205;30-11-2024;34949401;Cerrado con cambios;59450.75;Error de contabilización;En curso FinOps;Pendiente de revisión
-Mexico;F20243d3wa6C57-D8DF-11EF-834A-47FADE6AD0CE;Factura;Sin errores;JUGUETES FAMOSA;9500123969;22-01-2025;Completa;Ingresada;Por procesar; ;4000075093;22-01-2025;37350320;Confirmado;31691.2;Ingresada;En procesamiento;Inbound no Cerrado
+Mexico;F202d43d3wa6C57-D8DF-11EF-834A-47FADE6AD0CE;Factura;Sin errores;JUGUETES FAMOSA;9500123969;22-01-2025;Completa;Ingresada;Por procesar; ;4000075093;22-01-2025;37350320;Confirmado;31691.2;Ingresada;En procesamiento;Inbound no Cerrado

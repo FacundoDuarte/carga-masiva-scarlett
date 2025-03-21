@@ -3,7 +3,7 @@ export type {Job, Issue, OperationPayload} from './types';
 export {JobStatus, Appearance} from './types';
 
 // Re-exportar todo desde functions.ts
-export {JiraClient, validateContextToken, SSM} from './functions';
+export {JiraClient, StateMachine} from './functions';
 
 // Re-exportar todo desde interfaces.ts
 export type {ValidationResponse} from './interfaces';

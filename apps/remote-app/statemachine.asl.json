@@ -24,13 +24,6 @@
                         "Catch": [
                             {
                                 "ErrorEquals": [
-                                    "Lambda.NoItemsToProcess"
-                                ],
-                                "ResultPath": "$.error",
-                                "Next": "SuccessfulWithEmptyItems"
-                            },
-                            {
-                                "ErrorEquals": [
                                     "States.ALL"
                                 ],
                                 "ResultPath": "$.error",
@@ -61,13 +54,6 @@
                                 ],
                                 "ResultPath": "$.error",
                                 "Next": "ExtractRetryTime503ForMatching"
-                            },
-                            {
-                                "ErrorEquals": [
-                                    "Lambda.NoItemsToProcess"
-                                ],
-                                "ResultPath": "$.error",
-                                "Next": "SuccessfulWithEmptyItems"
                             },
                             {
                                 "ErrorEquals": [
@@ -104,25 +90,42 @@
                             },
                             {
                                 "ErrorEquals": [
-                                    "Lambda.NoItemsToProcess"
-                                ],
-                                "ResultPath": "$.error",
-                                "Next": "SuccessfulWithEmptyItems"
-                            },
-                            {
-                                "ErrorEquals": [
                                     "States.ALL"
                                 ],
                                 "ResultPath": "$.error",
                                 "Next": "EndWithError"
                             }
                         ],
-                        "Next": "Execute Operations"
+                        "Next": "Choice"
+                    },
+                    "Choice": {
+                        "Type": "Choice",
+                        "Choices": [
+                            {
+                                "And": [
+                                    {
+                                     "Variable": "$.Items",
+                                     "IsPresent": true
+                                    },
+                                    {
+                                      "Variable": "$.Items[0]",
+                                      "IsPresent": true
+                                    }
+                                  ],
+                                "Next": "Execute Operations"
+                            }
+                        ],
+                        "Default": "Success With No Items"
+                    },
+                    "Success With No Items": {
+                        "Type": "Succeed"
                     },
                     "ExtractRetryTime429ForMatching": {
                         "Type": "Pass",
                         "Parameters": {
                             "error.$": "$.error",
+                            "status": 429,
+                            "errorMessage": "TooManyRequestsException - Rate Exceeded",
                             "retrySeconds.$": "$.error.retryAfterSeconds"
                         },
                         "Next": "WaitForRateLimitMatching"
@@ -131,7 +134,7 @@
                         "Type": "Pass",
                         "Parameters": {
                             "error.$": "$.error",
-                            "retrySeconds": "60"
+                            "retrySeconds.$": "$.error.retryAfterSeconds"
                         },
                         "Next": "WaitForRateLimitMatching"
                     },
@@ -144,6 +147,8 @@
                         "Type": "Pass",
                         "Parameters": {
                             "error.$": "$.error",
+                            "status": 429,
+                            "errorMessage": "TooManyRequestsException - Rate Exceeded",
                             "retrySeconds.$": "$.error.retryAfterSeconds"
                         },
                         "Next": "WaitForRateLimitValidation"
@@ -152,7 +157,7 @@
                         "Type": "Pass",
                         "Parameters": {
                             "error.$": "$.error",
-                            "retrySeconds": "60"
+                            "retrySeconds.$": "$.error.retryAfterSeconds"
                         },
                         "Next": "WaitForRateLimitValidation"
                     },
@@ -160,10 +165,6 @@
                         "Type": "Wait",
                         "SecondsPath": "$.retrySeconds",
                         "Next": "ValidateCondition"
-                    },
-                    "SuccessfulWithEmptyItems": {
-                        "Type": "Succeed",
-                        "Comment": "Termina exitosamente cuando no hay items para procesar"
                     },
                     "EndWithError": {
                         "Type": "Fail",
@@ -210,7 +211,10 @@
                                             "Next": "HandleOtherError"
                                         }
                                     ],
-                                    "End": true
+                                    "Next": "Success"
+                                },
+                                "Success": {
+                                    "Type": "Succeed"
                                 },
                                 "ExtractItemRetryTime429": {
                                     "Type": "Pass",
@@ -218,7 +222,7 @@
                                         "error.$": "$.error",
                                         "status": 429,
                                         "errorMessage": "TooManyRequestsException - Rate Exceeded",
-                                        "retrySeconds": "$.error.retryAfterSeconds"
+                                        "retrySeconds.$": "$.error.retryAfterSeconds"
                                     },
                                     "Next": "WaitForItemRateLimit"
                                 },
@@ -228,13 +232,13 @@
                                         "error.$": "$.error",
                                         "status": 503,
                                         "errorMessage": "Service Unavailable",
-                                        "retrySeconds": 60
+                                        "retrySeconds.$": "$.error.retryAfterSeconds"
                                     },
                                     "Next": "WaitForItemRateLimit"
                                 },
                                 "WaitForItemRateLimit": {
                                     "Type": "Wait",
-                                    "SecondsPath": "$.error.retrySeconds",
+                                    "SecondsPath": "$.retrySeconds",
                                     "Next": "Execute"
                                 },
                                 "HandleOtherError": {
@@ -260,7 +264,8 @@
                 },
                 "ReaderConfig": {
                     "InputType": "CSV",
-                    "CSVHeaderLocation": "FIRST_ROW"
+                    "CSVHeaderLocation": "FIRST_ROW",
+                    "CSVDelimiter": "SEMICOLON"
                 }
             },
             "MaxConcurrency": 1000,

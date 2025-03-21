@@ -61,15 +61,14 @@ Resources:
               - POST
               - HEAD
             AllowedOrigins:
-              - '*'
+              - "*"
             AllowedHeaders:
-              - '*'
+              - "*"
       LifecycleConfiguration:
         Rules:
           - Id: DeleteOldFiles
             Status: Enabled
             ExpirationInDays: 30
-
   RateLimitControlTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -93,11 +92,11 @@ Resources:
         openapi: 3.0.1
         info:
           title: Scarlett API
-          version: '1.0'
+          version: "1.0"
         x-amazon-apigateway-binary-media-types:
           - multipart/form-data
         paths:
-          /validate-session:
+          /execution:
             post:
               security: [] # This explicitly makes the endpoint public (no auth required)
               x-amazon-apigateway-integration:
@@ -107,10 +106,10 @@ Resources:
                 type: aws_proxy
                 contentHandling: CONVERT_TO_TEXT
               responses:
-                '200':
+                "201":
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '*'
+                allowOrigin: "*"
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -121,8 +120,8 @@ Resources:
                   - X-Api-Key
                   - X-Amz-Security-Token
                 maxAge: 300
-          /executions:
-            post:
+          /execution/{executionArn}:
+            get:
               security: [] # This explicitly makes the endpoint public (no auth required)
               x-amazon-apigateway-integration:
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetStateMachineStatus.Arn}/invocations
@@ -130,33 +129,10 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                '200':
+                "200":
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '*'
-                allowMethods:
-                  - POST
-                  - OPTIONS
-                allowHeaders:
-                  - Content-Type
-                  - Authorization
-                  - X-Amz-Date
-                  - X-Api-Key
-                  - X-Amz-Security-Token
-                maxAge: 300
-          /execution:
-            post:
-              security: [] # This explicitly makes the endpoint public (no auth required)
-              x-amazon-apigateway-integration:
-                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ValidateSessionFunction.Arn}/invocations
-                passthroughBehavior: when_no_match
-                httpMethod: POST
-                type: aws_proxy
-              responses:
-                '200':
-                  description: Success
-              x-amazon-apigateway-cors:
-                allowOrigin: '*'
+                allowOrigin: "*"
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -176,10 +152,10 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                '200':
+                "200":
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '*'
+                allowOrigin: "*"
                 allowMethods:
                   - POST
                   - OPTIONS
@@ -199,10 +175,10 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                '200':
+                "200":
                   description: Success
               x-amazon-apigateway-cors:
-                allowOrigin: '*'
+                allowOrigin: "*"
                 allowMethods:
                   - GET
                   - POST
@@ -222,8 +198,8 @@ Resources:
       Description: !Sub
         - Stack ${AWS::StackName} Function ${ResourceName}
         - ResourceName: ValidateSession
-      CodeUri: ./dist
-      Handler: validate-session.default
+      CodeUri: ./src
+      Handler: validate-session.post
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
@@ -238,7 +214,7 @@ Resources:
             - Effect: Allow
               Action:
                 - states:StartExecution
-              Resource: '*'
+              Resource: "*"
       Events:
         ApiPOSTvalidatesession:
           Type: Api
@@ -247,7 +223,19 @@ Resources:
             Method: POST
             RestApiId: !Ref Api
     Metadata:
-      BuildMethod: makefile
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - validate-session.mts
+        Bundle: true
+        Minify: true
+        Format: esm
+        Platform: node
+        Target: esnext
+        External:
+          - bun
+        TreeShaking: true
+        Sourcemap: false
     Events:
       ApiPOSTvalidatesession:
         Type: Api
@@ -262,7 +250,7 @@ Resources:
         - Stack ${AWS::StackName} Function ${ResourceName}
         - ResourceName: GetStateMachineStatus
       CodeUri: ./src
-      Handler: get-statemachine-status.post
+      Handler: get-statemachine-status.get
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
@@ -275,7 +263,7 @@ Resources:
                 - states:DescribeExecution
                 - states:DescribeMapRun
                 - states:ListMapRuns
-              Resource: '*'
+              Resource: "*"
       Events:
         ApiPOSTgetstatemachinestatus:
           Type: Api
@@ -284,7 +272,17 @@ Resources:
             Method: POST
             RestApiId: !Ref Api
     Metadata:
-      BuildMethod: makefile
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - get-statemachine-status.mts
+        Bundle: true
+        Minify: true
+        Format: esm
+        Platform: node
+        Target: esnext
+        External:
+          - bun
   ExecuteOperationFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -298,16 +296,9 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - '@aws-sdk/*'
-          - aws-sdk
-          - '@forge/api'
-          - date-fns
-          - jose
-          - uuid
           - bun
         TreeShaking: true
         Sourcemap: false
-
     Properties:
       Handler: execute-operation.post
       CodeUri: ./src
@@ -339,12 +330,6 @@ Resources:
         Platform: node
         Target: es2020
         External:
-          - '@aws-sdk/*'
-          - aws-sdk
-          - '@forge/api'
-          - date-fns
-          - jose
-          - uuid
           - bun
         TreeShaking: true
         Sourcemap: false
@@ -355,7 +340,6 @@ Resources:
         - AWSLambdaBasicExecutionRole
         - S3CrudPolicy:
             BucketName: !Ref ScarletStorageBucket
-
   MatchExistingIssuesFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -369,12 +353,6 @@ Resources:
         Platform: node
         Target: es2020
         External:
-          - '@aws-sdk/*'
-          - aws-sdk
-          - '@forge/api'
-          - date-fns
-          - jose
-          - uuid
           - bun
         TreeShaking: true
         Sourcemap: false
@@ -385,7 +363,6 @@ Resources:
         - AWSLambdaBasicExecutionRole
         - S3CrudPolicy:
             BucketName: !Ref ScarletStorageBucket
-
   ValidateConditionFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -399,12 +376,6 @@ Resources:
         Platform: node
         Target: es2020
         External:
-          - '@aws-sdk/*'
-          - aws-sdk
-          - '@forge/api'
-          - date-fns
-          - jose
-          - uuid
           - bun
         TreeShaking: true
         Sourcemap: false
@@ -415,7 +386,6 @@ Resources:
         - AWSLambdaBasicExecutionRole
         - S3CrudPolicy:
             BucketName: !Ref ScarletStorageBucket
-  # Máquina de estado (Step Functions) definida en un archivo JSON externo
   StateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
@@ -429,13 +399,11 @@ Resources:
       Role: !GetAtt StateMachineExecutionRole.Arn
       Name: scarlet-execution-machine
       DefinitionUri: statemachine.asl.json
-
-  # Rol de ejecución para la máquina de estado
   StateMachineExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -447,7 +415,7 @@ Resources:
       Policies:
         - PolicyName: StepFunctionsExecutionPolicy
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
@@ -461,7 +429,7 @@ Resources:
                   - dynamodb:GetItem
                   - dynamodb:UpdateItem
                   - dynamodb:DeleteItem
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - s3:PutObject
@@ -515,12 +483,6 @@ Resources:
         Platform: node
         Target: esnext
         External:
-          - '@aws-sdk/*'
-          - aws-sdk
-          - '@forge/api'
-          - date-fns
-          - jose
-          - uuid
           - bun
         TreeShaking: true
         Sourcemap: false
@@ -570,7 +532,6 @@ Resources:
           - bun
         TreeShaking: true
         Sourcemap: false
-
 Outputs:
   GetStateMachineStatusUrl:
     Description: Validate Session Function Url

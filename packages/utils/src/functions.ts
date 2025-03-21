@@ -10,9 +10,9 @@ import {
   DescribeMapRunCommandOutput,
   ListMapRunsCommand,
   ListMapRunsCommandOutput,
+  StartExecutionCommand,
+  StartExecutionCommandOutput,
 } from '@aws-sdk/client-sfn';
-
-const sfnClient = new SFNClient({});
 
 const QUERY_MAX_RESULTS: number = 5000;
 const STATE_MACHINE_ARN =
@@ -25,29 +25,50 @@ interface FetchFromJiraParams {
   body?: string;
 }
 
-export class SSM {
-  async getStateMachineStatus(executionArn: string): Promise<DescribeExecutionCommandOutput> {
+export class StateMachine {
+  private sfnClient: SFNClient;
+  private stateMachineArn: string;
+  constructor() {
+    this.stateMachineArn = STATE_MACHINE_ARN;
+    this.sfnClient = new SFNClient({});
+  }
+  async getStatus(executionArn: string): Promise<DescribeExecutionCommandOutput> {
     const command = new DescribeExecutionCommand({
-      executionArn: `arn:aws:states:us-east-1:529202746267:execution:scarlet-execution-machine:scarlet-${executionArn}`,
+      executionArn: `arn:aws:states:us-east-1:529202746267:execution:${this.stateMachineArn}:scarlet-${executionArn}`,
       includedData: 'ALL_DATA',
     });
-    const result = await sfnClient.send(command);
+    const result = await this.sfnClient.send(command);
     console.log(`DescribeExecutionCommand: ${JSON.stringify(result.mapRunArn)}`);
     return result;
   }
-  async getStateMachineMapRunStatus(mapRunArn: string): Promise<DescribeMapRunCommandOutput> {
+  async getMapStatus(mapRunArn: string): Promise<DescribeMapRunCommandOutput> {
     const command = new DescribeMapRunCommand({mapRunArn});
-    const result = await sfnClient.send(command);
+    const result = await this.sfnClient.send(command);
     console.log(`DescribeExecutionMapRunCommand: ${JSON.stringify(result)}`);
     return result;
   }
   async listStateMachineMapRuns(arn: string): Promise<ListMapRunsCommandOutput> {
     const command = new ListMapRunsCommand({
-      executionArn: `arn:aws:states:us-east-1:529202746267:execution:scarlet-execution-machine:scarlet-${arn}`,
+      executionArn: `arn:aws:states:us-east-1:529202746267:execution:${this.stateMachineArn}:scarlet-${arn}`,
     });
-    const result = await sfnClient.send(command);
+    const result = await this.sfnClient.send(command);
     console.log(`ListMapRunsCommand: ${JSON.stringify(result)}`);
     return result;
+  }
+  async start(input: Record<string, any>): Promise<StartExecutionCommandOutput> {
+    
+    const {name, traceHeader, input: inputParam} = input;
+    const message = new StartExecutionCommand({
+      stateMachineArn: this.stateMachineArn,
+      name,
+      traceHeader,
+      input: JSON.stringify(inputParam),
+    });
+
+    console.log('Step Function Message:', message);
+    const machine = await this.sfnClient.send(message);
+    console.log('Step Function Response:', machine);
+    return machine;
   }
 }
 
@@ -166,7 +187,7 @@ export class JiraClient {
             status: 429,
             message: `Rate limit exceeded. Retry after ${numericRetryAfter} seconds`,
             retryAfterSeconds: numericRetryAfter,
-            retrySeconds: numericRetryAfter  // Este es el que usará directamente WaitForItemRateLimit
+            retrySeconds: numericRetryAfter, // Este es el que usará directamente WaitForItemRateLimit
           };
         }
 
@@ -187,7 +208,7 @@ export class JiraClient {
             status: 503,
             message: `Service unavailable. Retry after ${numericRetryAfter} seconds`,
             retryAfterSeconds: numericRetryAfter,
-            retrySeconds: numericRetryAfter  // Consistente con el manejo del error 429
+            retrySeconds: numericRetryAfter, // Consistente con el manejo del error 429
           };
         }
 
@@ -291,49 +312,50 @@ export class JiraClient {
       throw formattedError;
     }
   }
-}
-export async function validateContextToken(
-  invocationToken: string,
-  appId: string,
-): Promise<ValidationResponse | undefined> {
-  console.log('=== validateContextToken v2 ===');
-  console.log('Input params:', {
-    invocationToken: invocationToken?.substring(0, 10) + '...',
-    appId,
-  });
 
-  const jwksUrl = 'https://forge.cdn.prod.atlassian-dev.net/.well-known/jwks.json';
-  console.log('JWKS URL:', jwksUrl);
-
-  try {
-    const JWKS = createRemoteJWKSet(new URL(jwksUrl));
-
-    const audienceValue = `ari:cloud:ecosystem::app/${appId}`;
-
-    const {payload} = await jwtVerify(invocationToken, JWKS, {
-      audience: audienceValue,
+  static async validateContextToken(
+    invocationToken: string,
+    appId: string,
+  ): Promise<ValidationResponse | undefined> {
+    console.log('=== validateContextToken v2 ===');
+    console.log('Input params:', {
+      invocationToken: invocationToken?.substring(0, 10) + '...',
+      appId,
     });
 
-    return {
-      app: payload.app as ValidationResponse['app'],
-      context: payload.context as ValidationResponse['context'],
-      principal: payload.principal as ValidationResponse['principal'],
-      aud: payload.aud as string,
-      exp: payload.exp as number,
-      iat: payload.iat as number,
-      iss: payload.iss as string,
-      nbf: payload.nbf as number,
-      jti: payload.jti as string,
-    };
-  } catch (e) {
-    if (e instanceof Error) {
-      console.error('=== validateContextToken Error ===');
-      console.error('Error type:', e.constructor.name);
-      console.error('Error message:', e.message);
-      if (e.stack) console.error('Stack trace:', e.stack);
-      return undefined;
-    } else {
-      throw e;
+    const jwksUrl = 'https://forge.cdn.prod.atlassian-dev.net/.well-known/jwks.json';
+    console.log('JWKS URL:', jwksUrl);
+
+    try {
+      const JWKS = createRemoteJWKSet(new URL(jwksUrl));
+
+      const audienceValue = `ari:cloud:ecosystem::app/${appId}`;
+
+      const {payload} = await jwtVerify(invocationToken, JWKS, {
+        audience: audienceValue,
+      });
+
+      return {
+        app: payload.app as ValidationResponse['app'],
+        context: payload.context as ValidationResponse['context'],
+        principal: payload.principal as ValidationResponse['principal'],
+        aud: payload.aud as string,
+        exp: payload.exp as number,
+        iat: payload.iat as number,
+        iss: payload.iss as string,
+        nbf: payload.nbf as number,
+        jti: payload.jti as string,
+      };
+    } catch (e) {
+      if (e instanceof Error) {
+        console.error('=== validateContextToken Error ===');
+        console.error('Error type:', e.constructor.name);
+        console.error('Error message:', e.message);
+        if (e.stack) console.error('Stack trace:', e.stack);
+        return undefined;
+      } else {
+        throw e;
+      }
     }
   }
 }

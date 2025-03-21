@@ -31,6 +31,14 @@ export default async function post(request: Request): Promise<Response> {
       },
     } = payload;
 
+    if (!rows.length) {
+      console.info('No hay filas para procesar');
+      return new Response(
+        JSON.stringify({Items: [], BatchInput: {executionId, projectId, apiBaseUrl, forgeToken}}),
+        {status: 204},
+      );
+    }
+
     // Validaciones básicas
     if (!forgeToken || forgeToken === '') {
       console.error('Authorization header is required');

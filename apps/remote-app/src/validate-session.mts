@@ -1,7 +1,5 @@
-import {JiraClient, validateContextToken, ValidationResponse} from '/opt/utils/index.js';
-import {SFNClient, StartExecutionCommand} from '@aws-sdk/client-sfn';
+import {JiraClient, StateMachine, ValidationResponse} from '/opt/utils/index.js';
 
-const sfnClient = new SFNClient({});
 
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME ?? 'scarlet-operations-dev-storage';
 
@@ -74,7 +72,7 @@ export default async function post(request: Request): Promise<Response> {
     console.log('Auth Token (first 10 chars):', authToken?.substring(0, 10) + '...');
     // Validar el token de contexto
     console.log('Calling validateContextToken...');
-    const validation = (await validateContextToken(
+    const validation = (await JiraClient.validateContextToken(
       authToken,
       process.env.APP_ID || 'e288d60c-ca8d-4d94-8a0a-6730f3786ab3',
     )) as ValidationResponse;
@@ -98,42 +96,24 @@ export default async function post(request: Request): Promise<Response> {
     console.log('Trace ID:', traceId);
     console.log('Span ID:', spanId);
     console.log('Cloud ID:', context.cloudId);
-    console.log('Site URL:', context.siteUrl);
     console.log('Timestamp:', new Date().toISOString());
     console.log('Execution ID:', fileId);
     console.log('Project ID:', projectId);
-    // Preparar mensaje para SQS
-    const client = JiraClient.fromString(
-      JSON.stringify({
-        token: authToken,
-        apiBaseUrl,
-      }),
-    );
 
-    const message = new StartExecutionCommand({
-      stateMachineArn: STATE_MACHINE_ARN,
-      name: `scarlet-${fileId}`,
+    const machine = await new StateMachine().start({
+      name: fileId,
       traceHeader: `${traceId}-${spanId}`,
       input: JSON.stringify({
-        filePath: `uploads/${fileId}.csv`,
-        forgeToken: forgeOauthSystem,
-        bucketName: AWS_BUCKET_NAME,
-        cloudId: context.cloudId,
-        siteUrl: context.siteUrl,
-        executionId: fileId,
+        forgeOauthSystem,
+        context,
         apiBaseUrl,
-        projectId,
-        client,
       }),
     });
-
-    console.log('Step Function Message:', message);
-    const machine = await sfnClient.send(message);
-    console.log('Step Function Response:', machine);
 
     return new Response(
       JSON.stringify({
         success: true,
+        status: 201,
         message: 'Session validated and task queued',
         executionId: fileId,
         executionArn: machine.executionArn,
@@ -146,6 +126,19 @@ export default async function post(request: Request): Promise<Response> {
     );
   } catch (error) {
     console.error('Error processing request:', error);
-    return new Response(`Error processing request: ${error}`, {status: 500});
+    return new Response(
+      JSON.stringify({
+        success: false,
+        status: 500,
+        message: 'Error processing request',
+        error: error,
+      }),
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        status: 500,
+      },
+    );
   }
 }

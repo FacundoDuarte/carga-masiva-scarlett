@@ -22,6 +22,14 @@ export default async function post(request: Request): Promise<Response> {
       BatchInput: {apiBaseUrl, forgeToken, projectId},
     } = payload.event;
 
+    if (!operations.length) {
+      console.info('No hay operaciones para procesar');
+      return new Response(
+        JSON.stringify({Items: [], BatchInput: {apiBaseUrl, forgeToken, projectId}}),
+        {status: 204},
+      );
+    }
+
     // Validación de que tenemos los datos esenciales
     if (!operations || !Array.isArray(operations)) {
       console.error('No se recibieron issues o el formato es incorrecto');
@@ -60,19 +68,21 @@ export default async function post(request: Request): Promise<Response> {
         operation: {
           issue: op.issue,
           method: op.method,
-          change: op.change
+          change: op.change,
         },
         client: {
           token: forgeToken,
-          apiBaseUrl: apiBaseUrl
-        }
+          apiBaseUrl: apiBaseUrl,
+        },
       })),
     };
-    
-    console.log('Ejemplo de primer item en payload:', 
-      responsePayload.Items.length > 0 ? 
-      JSON.stringify(responsePayload.Items[0], null, 2) : 
-      'No hay items');
+
+    console.log(
+      'Ejemplo de primer item en payload:',
+      responsePayload.Items.length > 0
+        ? JSON.stringify(responsePayload.Items[0], null, 2)
+        : 'No hay items',
+    );
 
     console.log(
       'Sending response payload with structure:',
