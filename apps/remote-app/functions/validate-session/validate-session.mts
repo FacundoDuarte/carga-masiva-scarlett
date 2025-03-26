@@ -1,11 +1,6 @@
-import {JiraClient, StateMachine, ValidationResponse} from '/opt/utils/index.js';
+import {JiraClient, StateMachine, ValidationResponse} from '/opt/utils/index';
 
-
-const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME ?? 'scarlet-operations-dev-storage';
-
-const STATE_MACHINE_ARN =
-  process.env.STATE_MACHINE_ARN ??
-  'arn:aws:states:us-east-1:529202746267:stateMachine:scarlet-execution-machine';
+const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || 'scarlet-operations-dev-storage';
 
 export default async function post(request: Request): Promise<Response> {
   try {
@@ -103,11 +98,14 @@ export default async function post(request: Request): Promise<Response> {
     const machine = await new StateMachine().start({
       name: fileId,
       traceHeader: `${traceId}-${spanId}`,
-      input: JSON.stringify({
-        forgeOauthSystem,
-        context,
+      input: {
+        forgeToken: forgeOauthSystem,
+        projectId,
+        filePath: `uploads/${fileId}.csv`,
+        executionId: fileId,
+        bucketName: S3_BUCKET_NAME,
         apiBaseUrl,
-      }),
+      },
     });
 
     return new Response(

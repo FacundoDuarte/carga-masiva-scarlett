@@ -10,7 +10,7 @@ import {
   CsvRowHeaders,
   OperationPayload,
   scarlettMapping,
-} from '/opt/utils/index.js';
+} from '/opt/utils/index';
 
 const ISSUE_TYPE_ID = 11504;
 

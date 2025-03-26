@@ -56,7 +56,6 @@ export class StateMachine {
     return result;
   }
   async start(input: Record<string, any>): Promise<StartExecutionCommandOutput> {
-    
     const {name, traceHeader, input: inputParam} = input;
     const message = new StartExecutionCommand({
       stateMachineArn: this.stateMachineArn,
@@ -94,7 +93,7 @@ export class JiraClient {
     });
 
     try {
-      const responseData = await response.json();
+      const responseData = (await response.json()) as {matches: {matchedIssues: number[]}[]};
       const matches: {matchedIssues: number[]}[] = responseData.matches;
       console.log(`VALIDATE ISSUES RETURN ${JSON.stringify(matches)}`);
 
@@ -172,7 +171,7 @@ export class JiraClient {
         // Manejo específico para errores de rate limit (429)
         if (response.status === 429) {
           const retryAfter = response.headers.get('Retry-After');
-          const retryAfterSeconds = retryAfter ? parseInt(retryAfter, 10) : 60; // Default a 60 segundos
+          const retryAfterSeconds = retryAfter ? parseInt(retryAfter, 10) : 30; // Default a 30 segundos
           console.log(`Rate limit exceeded. Retry-After: ${retryAfterSeconds} seconds`);
 
           // Crear un error estandarizado para la máquina de estados
@@ -185,16 +184,27 @@ export class JiraClient {
           throw {
             type: 'Lambda.TooManyRequestsException',
             status: 429,
-            message: `Rate limit exceeded. Retry after ${numericRetryAfter} seconds`,
-            retryAfterSeconds: numericRetryAfter,
-            retrySeconds: numericRetryAfter, // Este es el que usará directamente WaitForItemRateLimit
+            message: JSON.stringify({
+              type: 'Lambda.TooManyRequestsException',
+              status: 429,
+              message: `Rate limit exceeded. Retry after ${numericRetryAfter} seconds`,
+              retryAfterSeconds: numericRetryAfter,
+              retrySeconds: numericRetryAfter, // Este es el que usará directamente WaitForItemRateLimit
+            }),
+            Cause: JSON.stringify({
+              type: 'Lambda.TooManyRequestsException',
+              status: 429,
+              message: `Rate limit exceeded. Retry after ${numericRetryAfter} seconds`,
+              retryAfterSeconds: numericRetryAfter,
+              retrySeconds: numericRetryAfter, // Este es el que usará directamente WaitForItemRateLimit
+            }),
           };
         }
 
         // Manejo específico para errores de servicio no disponible (503)
         if (response.status === 503) {
           // Usar un tiempo de espera por defecto para 503
-          const retryAfterSeconds = 60; // 1 minuto por defecto para errores 503
+          const retryAfterSeconds = 30; // 30 segundos por defecto para errores 503
 
           console.log(
             `Service unavailable (503). Using default retry delay: ${retryAfterSeconds} seconds`,
@@ -206,9 +216,20 @@ export class JiraClient {
           throw {
             type: 'Lambda.ServiceUnavailable',
             status: 503,
-            message: `Service unavailable. Retry after ${numericRetryAfter} seconds`,
-            retryAfterSeconds: numericRetryAfter,
-            retrySeconds: numericRetryAfter, // Consistente con el manejo del error 429
+            message: JSON.stringify({
+              type: 'Lambda.ServiceUnavailable',
+              status: 503,
+              message: `Service unavailable. Retry after ${numericRetryAfter} seconds`,
+              retryAfterSeconds: numericRetryAfter,
+              retrySeconds: numericRetryAfter, // Consistente con el manejo del error 429
+            }),
+            Cause: JSON.stringify({
+              type: 'Lambda.ServiceUnavailable',
+              status: 503,
+              message: `Service unavailable. Retry after ${numericRetryAfter} seconds`,
+              retryAfterSeconds: numericRetryAfter,
+              retrySeconds: numericRetryAfter, // Consistente con el manejo del error 429
+            }),
           };
         }
 
@@ -223,7 +244,16 @@ export class JiraClient {
         throw {
           type: 'Lambda.HttpError',
           status: response.status,
-          message: `HTTP error ${response.status}: ${errorBody}`,
+          message: JSON.stringify({
+            type: 'Lambda.HttpError',
+            status: response.status,
+            message: `HTTP error ${response.status}: ${errorBody}`,
+          }),
+          Cause: JSON.stringify({
+            type: 'Lambda.HttpError',
+            status: response.status,
+            message: `HTTP error ${response.status}: ${errorBody}`,
+          }),
         };
       }
       return response;
@@ -295,7 +325,7 @@ export class JiraClient {
     });
 
     try {
-      const data = await response.json();
+      const data = (await response.json()) as {issues: Issue[]};
       console.log(`GET EXISTING ISSUES RETURN ${JSON.stringify(data)}`);
       if (!data.issues || !Array.isArray(data.issues)) {
         console.log('No issues found or invalid response format');

@@ -1,6 +1,4 @@
-import {JiraClient, Issue, OperationPayload} from '/opt/utils/index.js';
-
-const ISSUE_TYPE_ID = 11504;
+import {JiraClient, OperationPayload} from '/opt/utils/index';
 
 // Función principal que organiza el flujo
 export default async function post(request: Request): Promise<Response> {
@@ -19,28 +17,18 @@ export default async function post(request: Request): Promise<Response> {
     console.log('Request body:', payload);
     const {
       Items: operations,
-      BatchInput: {apiBaseUrl, forgeToken, projectId},
+      BatchInput: {apiBaseUrl, forgeToken},
     } = payload.event;
 
-    if (!operations.length) {
+    if (!operations || !Array.isArray(operations) || !operations.length) {
       console.info('No hay operaciones para procesar');
       return new Response(
-        JSON.stringify({Items: [], BatchInput: {apiBaseUrl, forgeToken, projectId}}),
+        JSON.stringify({Items: []}),
         {status: 204},
       );
     }
-
-    // Validación de que tenemos los datos esenciales
-    if (!operations || !Array.isArray(operations)) {
-      console.error('No se recibieron issues o el formato es incorrecto');
-      throw new Error(
-        'No se recibieron issues o el formato es incorrecto. Datos recibidos: ' +
-          JSON.stringify(payload),
-      );
-    }
-
     // Validaciones básicas
-    if (!forgeToken || forgeToken === '' || !apiBaseUrl || apiBaseUrl === '') {
+    if (!forgeToken || !apiBaseUrl) {
       console.error('Authorization or API Base URL header is required');
       throw {
         type: 'Lambda.BadRequestException',

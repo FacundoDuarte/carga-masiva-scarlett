@@ -1,11 +1,13 @@
 {
-  "name": "remote-app",
+  "name": "get-statemachine-status",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "sam build --config-file sam-config-dev.toml",
-    "deploy": "sam deploy --config-file sam-config-dev.toml",
+    "build": "make build-get-statemachine-statusFunction",
+    "deploy": "echo \"Use SAM deploy from root directory\"",
+    "build:deploy": "bun run build && bun run deploy",
+    "install:deps": "bun install",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {

@@ -296,7 +296,7 @@ async function _invokeCsvOperations(
   projectId: string
 ): Promise<{ executionId: string }> {
   const res = await invokeRemote<{ executionId: string }>({
-    path: '/Prod/validate-session',
+    path: '/Prod/execution',
     method: 'POST',
     body: {
       projectId: projectId,
@@ -312,11 +312,8 @@ async function _getStatusStateMachine(
   executionId: string
 ): Promise<ItemCounts> {
   const res = await invokeRemote<{ counts: ItemCounts }>({
-    path: '/Prod/executions',
-    method: 'POST',
-    body: {
-      executionArn: executionId,
-    },
+    path: `/Prod/execution/${executionId}`,
+    method: 'GET',
   });
   console.log('res: ', res);
 

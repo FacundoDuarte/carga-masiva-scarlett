@@ -12,21 +12,14 @@
   "scripts": {
     "build": "turbo run build",
     "clean": "./clean.sh",
-    "clean:install": "bun run clean && bun install && turbo run install:deps",
-    "start": "NODE_NO_WARNINGS=1 ts-node src/index.ts",
-    "deploy:sam": "cd apps/remote-app && chmod +x deploy.sh && ./deploy.sh",
-    "preview": "cd apps/remote-app && chmod +x deploy.sh && ./deploy.sh --preview",
-    "deploy:forge": "cd apps/forge-app && forge deploy",
-    "deploy:prod": "cd apps/forge-app && forge deploy -e production",
-    "tunnel": "cd apps/forge-app && forge tunnel",
+    "deploy:forge:dev": "cd apps/forge-app && forge deploy",
+    "deploy:forge:prod": "cd apps/forge-app && forge deploy -e production",
     "build:web": "turbo run build --filter=web",
     "build:manifest": "turbo run build --filter=manifest",
     "build:utils": "turbo run build --filter=utils",
     "build:remote": "turbo run build --filter=remote-app",
-    "install:all": "bun install && turbo run install:deps",
-    "install:deps": "bun install",
-    "user:facu": "./change-user.sh --facu",
-    "user:facu:auto": ". ./change-user.sh --facu --auto"
+    "deploy:remote": "turbo run deploy --filter=remote-app",
+    "full:remote": "turbo run build --filter=remote-app && turbo run deploy --filter=remote-app"
   },
   "devDependencies": {
     "@types/bun": "latest",

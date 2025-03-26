@@ -1,4 +1,4 @@
-import {CsvRow, CsvRowHeaders} from '/opt/utils/index.js';
+import {CsvRow, CsvRowHeaders} from '/opt/utils/index';
 
 const ISSUE_TYPE_ID = 11504;
 
@@ -213,9 +213,11 @@ function parsingRows(items: any): CsvRow[] {
         return false;
       }
 
+      const omitValues = ['No aplica', '', null, undefined, ' '];
+
       // Verificar si el campo requerido existe y no es 'No aplica'
       const subEstado = row[CsvRowHeaders.subEstadoEnJira];
-      return subEstado !== 'No aplica';
+      return !omitValues.includes(subEstado);
     });
 
     if (!rows.length) {

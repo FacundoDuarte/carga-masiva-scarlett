@@ -43,17 +43,13 @@
                         "Catch": [
                             {
                                 "ErrorEquals": [
-                                    "Lambda.TooManyRequestsException"
+                                    "Lambda.TooManyRequestsException",
+                                    "Lambda.ServiceUnavailable",
+                                    "Lambda.Unknown",
+                                    "States.Timeout"
                                 ],
-                                "ResultPath": "$.error",
-                                "Next": "ExtractRetryTime429ForMatching"
-                            },
-                            {
-                                "ErrorEquals": [
-                                    "Lambda.ServiceUnavailable"
-                                ],
-                                "ResultPath": "$.error",
-                                "Next": "ExtractRetryTime503ForMatching"
+                                "ResultPath": null,
+                                "Next": "WaitForRateLimitMatching"
                             },
                             {
                                 "ErrorEquals": [
@@ -63,7 +59,8 @@
                                 "Next": "EndWithError"
                             }
                         ],
-                        "Next": "ValidateCondition"
+                        "Next": "ValidateCondition",
+                        "TimeoutSeconds": 30
                     },
                     "ValidateCondition": {
                         "Type": "Task",
@@ -76,17 +73,13 @@
                         "Catch": [
                             {
                                 "ErrorEquals": [
-                                    "Lambda.TooManyRequestsException"
+                                    "Lambda.TooManyRequestsException",
+                                    "Lambda.ServiceUnavailable",
+                                    "Lambda.Unknown",
+                                    "States.Timeout"
                                 ],
-                                "ResultPath": "$.error",
-                                "Next": "ExtractRetryTime429ForValidation"
-                            },
-                            {
-                                "ErrorEquals": [
-                                    "Lambda.ServiceUnavailable"
-                                ],
-                                "ResultPath": "$.error",
-                                "Next": "ExtractRetryTime503ForValidation"
+                                "ResultPath": null,
+                                "Next": "WaitForRateLimitValidation"
                             },
                             {
                                 "ErrorEquals": [
@@ -96,7 +89,8 @@
                                 "Next": "EndWithError"
                             }
                         ],
-                        "Next": "Choice"
+                        "Next": "Choice",
+                        "TimeoutSeconds": 30
                     },
                     "Choice": {
                         "Type": "Choice",
@@ -104,14 +98,14 @@
                             {
                                 "And": [
                                     {
-                                     "Variable": "$.Items",
-                                     "IsPresent": true
+                                        "Variable": "$.Items",
+                                        "IsPresent": true
                                     },
                                     {
-                                      "Variable": "$.Items[0]",
-                                      "IsPresent": true
+                                        "Variable": "$.Items[0]",
+                                        "IsPresent": true
                                     }
-                                  ],
+                                ],
                                 "Next": "Execute Operations"
                             }
                         ],
@@ -120,51 +114,15 @@
                     "Success With No Items": {
                         "Type": "Succeed"
                     },
-                    "ExtractRetryTime429ForMatching": {
-                        "Type": "Pass",
-                        "Parameters": {
-                            "error.$": "$.error",
-                            "status": 429,
-                            "errorMessage": "TooManyRequestsException - Rate Exceeded",
-                            "retrySeconds.$": "$.error.retryAfterSeconds"
-                        },
-                        "Next": "WaitForRateLimitMatching"
-                    },
-                    "ExtractRetryTime503ForMatching": {
-                        "Type": "Pass",
-                        "Parameters": {
-                            "error.$": "$.error",
-                            "retrySeconds.$": "$.error.retryAfterSeconds"
-                        },
-                        "Next": "WaitForRateLimitMatching"
-                    },
                     "WaitForRateLimitMatching": {
                         "Type": "Wait",
-                        "SecondsPath": "$.retrySeconds",
-                        "Next": "MatchExistingIssues"
-                    },
-                    "ExtractRetryTime429ForValidation": {
-                        "Type": "Pass",
-                        "Parameters": {
-                            "error.$": "$.error",
-                            "status": 429,
-                            "errorMessage": "TooManyRequestsException - Rate Exceeded",
-                            "retrySeconds.$": "$.error.retryAfterSeconds"
-                        },
-                        "Next": "WaitForRateLimitValidation"
-                    },
-                    "ExtractRetryTime503ForValidation": {
-                        "Type": "Pass",
-                        "Parameters": {
-                            "error.$": "$.error",
-                            "retrySeconds.$": "$.error.retryAfterSeconds"
-                        },
-                        "Next": "WaitForRateLimitValidation"
+                        "Next": "MatchExistingIssues",
+                        "Seconds": 10
                     },
                     "WaitForRateLimitValidation": {
                         "Type": "Wait",
-                        "SecondsPath": "$.retrySeconds",
-                        "Next": "ValidateCondition"
+                        "Next": "ValidateCondition",
+                        "Seconds": 10
                     },
                     "EndWithError": {
                         "Type": "Fail",
@@ -191,64 +149,36 @@
                                     "Catch": [
                                         {
                                             "ErrorEquals": [
-                                                "Lambda.TooManyRequestsException"
+                                                "Lambda.TooManyRequestsException",
+                                                "Lambda.ServiceUnavailable",
+                                                "States.Timeout",
+                                                "Lambda.Unknown",
+                                                "Error"
                                             ],
-                                            "ResultPath": "$.error",
-                                            "Next": "ExtractItemRetryTime429"
-                                        },
-                                        {
-                                            "ErrorEquals": [
-                                                "Lambda.ServiceUnavailable"
-                                            ],
-                                            "ResultPath": "$.error",
-                                            "Next": "ExtractItemRetryTime503"
+                                            "ResultPath": null,
+                                            "Next": "WaitForItemRateLimit"
                                         },
                                         {
                                             "ErrorEquals": [
                                                 "States.ALL"
                                             ],
                                             "ResultPath": "$.error",
-                                            "Next": "HandleOtherError"
+                                            "Next": "Fail"
                                         }
                                     ],
-                                    "Next": "Success"
+                                    "Next": "Success",
+                                    "TimeoutSeconds": 30
                                 },
                                 "Success": {
                                     "Type": "Succeed"
                                 },
-                                "ExtractItemRetryTime429": {
-                                    "Type": "Pass",
-                                    "Parameters": {
-                                        "error.$": "$.error",
-                                        "status": 429,
-                                        "errorMessage": "TooManyRequestsException - Rate Exceeded",
-                                        "retrySeconds.$": "$.error.retryAfterSeconds"
-                                    },
-                                    "Next": "WaitForItemRateLimit"
-                                },
-                                "ExtractItemRetryTime503": {
-                                    "Type": "Pass",
-                                    "Parameters": {
-                                        "error.$": "$.error",
-                                        "status": 503,
-                                        "errorMessage": "Service Unavailable",
-                                        "retrySeconds.$": "$.error.retryAfterSeconds"
-                                    },
-                                    "Next": "WaitForItemRateLimit"
-                                },
                                 "WaitForItemRateLimit": {
                                     "Type": "Wait",
-                                    "SecondsPath": "$.retrySeconds",
-                                    "Next": "Execute"
+                                    "Next": "Execute",
+                                    "Seconds": 10
                                 },
-                                "HandleOtherError": {
-                                    "Type": "Pass",
-                                    "Parameters": {
-                                        "error.$": "$.error",
-                                        "status": 500,
-                                        "errorMessage.$": "States.Format('Unknown Error: {}', $.error.Cause)"
-                                    },
-                                    "End": true
+                                "Fail": {
+                                    "Type": "Fail"
                                 }
                             }
                         },
@@ -283,10 +213,8 @@
                     "apiBaseUrl.$": "$.apiBaseUrl",
                     "forgeToken.$": "$.forgeToken",
                     "bucketName.$": "$.bucketName",
-                    "cloudId.$": "$.cloudId",
                     "executionId.$": "$.executionId",
-                    "projectId.$": "$.projectId",
-                    "client.$": "$.client"
+                    "projectId.$": "$.projectId"
                 }
             }
         },

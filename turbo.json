@@ -22,8 +22,11 @@
                 "template.yml"
             ]
         },
-        "deploy:sam": {
+        "deploy": {
             "cache": false,
+            "dependsOn": [
+                "^deploy"
+            ],
             "inputs": [
                 "template.yml",
                 "sam-config-dev.toml"

@@ -22,31 +22,6 @@ Resources:
       CompatibleRuntimes:
         - provided.al2
       RetentionPolicy: Retain
-  ScarletExecutionQueue:
-    Type: AWS::SQS::Queue
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Retain
-    Properties:
-      QueueName: !Sub ${AWS::StackName}-execution-queue
-      VisibilityTimeout: 900 # 15 minutos para procesar mensajes
-      MessageRetentionPeriod: 1209600 # 14 días
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt ScarletExecutionDLQ.Arn
-        maxReceiveCount: 3
-  SQSTrigger:
-    Type: AWS::Lambda::EventSourceMapping
-    Properties:
-      BatchSize: 10
-      Enabled: true
-      EventSourceArn: !GetAtt ScarletExecutionQueue.Arn
-      FunctionName: !Ref ExecuteOperationFunction
-  ScarletExecutionDLQ:
-    Type: AWS::SQS::Queue
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Retain
-    Properties:
-      QueueName: !Sub ${AWS::StackName}-execution-dlq
-      MessageRetentionPeriod: 1209600 # 14 días
   ScarletStorageBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Delete
@@ -71,6 +46,8 @@ Resources:
             ExpirationInDays: 30
   RateLimitControlTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub ${AWS::StackName}-rate-limit-control
       BillingMode: PAY_PER_REQUEST
@@ -147,7 +124,7 @@ Resources:
             post:
               security: [] # This explicitly makes the endpoint public (no auth required)
               x-amazon-apigateway-integration:
-                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetUploadUrl.Arn}/invocations
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GenerateUploadUrl.Arn}/invocations
                 passthroughBehavior: when_no_match
                 httpMethod: POST
                 type: aws_proxy
@@ -198,8 +175,8 @@ Resources:
       Description: !Sub
         - Stack ${AWS::StackName} Function ${ResourceName}
         - ResourceName: ValidateSession
-      CodeUri: ./src
-      Handler: validate-session.post
+      CodeUri: ./functions/validate-session
+      Handler: validate-session.default
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
@@ -208,22 +185,17 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - s3:PutObject
-                - s3:GetObject
-              Resource: !Sub arn:aws:s3:::${AWS::StackName}-storage/*
-            - Effect: Allow
-              Action:
                 - states:StartExecution
               Resource: "*"
       Events:
         ApiPOSTvalidatesession:
           Type: Api
           Properties:
-            Path: /validate-session
+            Path: /execution
             Method: POST
             RestApiId: !Ref Api
     Metadata:
-      BuildMethod: esbuild
+      BuildMethod: makefile
       BuildProperties:
         EntryPoints:
           - validate-session.mts
@@ -236,20 +208,13 @@ Resources:
           - bun
         TreeShaking: true
         Sourcemap: false
-    Events:
-      ApiPOSTvalidatesession:
-        Type: Api
-        Properties:
-          Path: /validate-session
-          Method: POST
-          RestApiId: !Ref Api
   GetStateMachineStatus:
     Type: AWS::Serverless::Function
     Properties:
       Description: !Sub
         - Stack ${AWS::StackName} Function ${ResourceName}
         - ResourceName: GetStateMachineStatus
-      CodeUri: ./src
+      CodeUri: ./functions/get-statemachine-status
       Handler: get-statemachine-status.get
       MemorySize: 3008
       Timeout: 30
@@ -268,7 +233,7 @@ Resources:
         ApiPOSTgetstatemachinestatus:
           Type: Api
           Properties:
-            Path: /executions
+            Path: /execution/{executionId}
             Method: POST
             RestApiId: !Ref Api
     Metadata:
@@ -283,6 +248,7 @@ Resources:
         Target: esnext
         External:
           - bun
+          - /opt/utils/index
   ExecuteOperationFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -297,24 +263,16 @@ Resources:
         Target: esnext
         External:
           - bun
+          - /opt/utils/index
         TreeShaking: true
         Sourcemap: false
     Properties:
       Handler: execute-operation.post
-      CodeUri: ./src
+      CodeUri: ./functions/execute-operation
       Policies:
         - AWSLambdaBasicExecutionRole
         - S3CrudPolicy:
             BucketName: !Ref ScarletStorageBucket
-        - Statement:
-            - Effect: Allow
-              Action:
-                - sqs:SendMessage
-                - sqs:ReceiveMessage
-                - sqs:DeleteMessage
-                - sqs:GetQueueAttributes
-              Resource:
-                - !GetAtt ScarletExecutionQueue.Arn
       Timeout: 30
       Tracing: Active
   ParsingRowsFunction:
@@ -331,11 +289,12 @@ Resources:
         Target: es2020
         External:
           - bun
+          - /opt/utils/index
         TreeShaking: true
         Sourcemap: false
     Properties:
       Handler: parsing-rows.post
-      CodeUri: ./src
+      CodeUri: ./functions/parsing-rows
       Policies:
         - AWSLambdaBasicExecutionRole
         - S3CrudPolicy:
@@ -354,11 +313,12 @@ Resources:
         Target: es2020
         External:
           - bun
+          - /opt/utils/index
         TreeShaking: true
         Sourcemap: false
     Properties:
       Handler: match-existing-issues.post
-      CodeUri: ./src
+      CodeUri: ./functions/match-existing-issues
       Policies:
         - AWSLambdaBasicExecutionRole
         - S3CrudPolicy:
@@ -377,11 +337,37 @@ Resources:
         Target: es2020
         External:
           - bun
+          - /opt/utils/index
         TreeShaking: true
         Sourcemap: false
     Properties:
       Handler: validate-condition.post
-      CodeUri: ./src
+      CodeUri: ./functions/validate-condition
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - S3CrudPolicy:
+            BucketName: !Ref ScarletStorageBucket
+            
+  DetectCSVDelimiterFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - detect-csv-delimiter.mts
+        Bundle: true
+        Minify: true
+        Format: esm
+        Platform: node
+        Target: es2020
+        External:
+          - bun
+          - /opt/utils/index
+        TreeShaking: true
+        Sourcemap: false
+    Properties:
+      Handler: detect-csv-delimiter.handler
+      CodeUri: ./functions/detect-csv-delimiter
       Policies:
         - AWSLambdaBasicExecutionRole
         - S3CrudPolicy:
@@ -389,12 +375,18 @@ Resources:
   StateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
+      Logging:
+        Level: "ALL"
+        IncludeExecutionData: true
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt StateMachineLogGroup.Arn
       DefinitionSubstitutions:
         ExecuteOperationFunction: !GetAtt ExecuteOperationFunction.Arn
         ParsingRowsFunction: !GetAtt ParsingRowsFunction.Arn
         MatchExistingIssuesFunction: !GetAtt MatchExistingIssuesFunction.Arn
         ValidateConditionFunction: !GetAtt ValidateConditionFunction.Arn
-        ScarletExecutionQueue: !Ref ScarletExecutionQueue
+        DetectCSVDelimiterFunction: !GetAtt DetectCSVDelimiterFunction.Arn
         RateLimitControlTable: !Ref RateLimitControlTable
       Role: !GetAtt StateMachineExecutionRole.Arn
       Name: scarlet-execution-machine
@@ -420,20 +412,14 @@ Resources:
               - Effect: Allow
                 Action:
                   - lambda:InvokeFunction
-                  - sqs:SendMessage
-                  - sqs:ReceiveMessage
-                  - sqs:DeleteMessage
-                  - sqs:GetQueueAttributes
+                  - s3:ListBucket
                   - states:StartExecution
-                  - dynamodb:PutItem
-                  - dynamodb:GetItem
-                  - dynamodb:UpdateItem
-                  - dynamodb:DeleteItem
                 Resource: "*"
               - Effect: Allow
                 Action:
                   - s3:PutObject
                   - s3:GetObject
+                  - s3:ListBucket
                 Resource:
                   - !Sub ${ScarletStorageBucket.Arn}/*
               - Effect: Allow
@@ -444,14 +430,28 @@ Resources:
                   - dynamodb:DeleteItem
                 Resource:
                   - !GetAtt RateLimitControlTable.Arn
-  GetUploadUrl:
+        - PolicyName: CloudWatchLogsFullAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:*
+                Resource: "*"
+  StateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-StateMachine
+  GenerateUploadUrl:
     Type: AWS::Serverless::Function
     Properties:
       Description: !Sub
         - Stack ${AWS::StackName} Function ${ResourceName}
-        - ResourceName: GetUploadUrl
-      Handler: get-upload-url.post
-      CodeUri: ./src
+        - ResourceName: GenerateUploadUrl
+      Handler: generate-upload-url.post
+      CodeUri: ./functions/generate-upload-url
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
@@ -462,11 +462,11 @@ Resources:
               Action:
                 - s3:PutObject
                 - s3:GetObject
+                - s3:ListBucket
               Resource:
                 - !Sub ${ScarletStorageBucket.Arn}/*
-
       Events:
-        ApiPOSTgetuploadurl:
+        ApiPOSTGenerateUploadUrl:
           Type: Api
           Properties:
             Path: /get-upload-url
@@ -476,7 +476,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - get-upload-url.ts
+          - generate-upload-url.ts
         Bundle: true
         Minify: true
         Format: esm
@@ -486,12 +486,12 @@ Resources:
           - bun
         TreeShaking: true
         Sourcemap: false
-  GetUploadUrlLogGroup:
+  GenerateUploadUrlLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
     UpdateReplacePolicy: Delete
     Properties:
-      LogGroupName: !Sub /aws/lambda/${GetUploadUrl}
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-GenerateUploadUrl
   DownloadTemplate:
     Type: AWS::Serverless::Function
     Properties:
@@ -499,7 +499,7 @@ Resources:
         - Stack ${AWS::StackName} Function ${ResourceName}
         - ResourceName: DownloadTemplate
       Handler: download-template.get
-      CodeUri: ./src
+      CodeUri: ./functions/download-template
       MemorySize: 3008
       Timeout: 30
       Tracing: Active

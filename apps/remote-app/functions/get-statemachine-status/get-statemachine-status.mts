@@ -1,4 +1,4 @@
-import {StateMachine} from '/opt/utils/index.js';
+import {StateMachine} from '/opt/utils/index';
 
 // Interface to represent the counts of items in different states
 import type {ItemCounts} from 'utils/src/types';
