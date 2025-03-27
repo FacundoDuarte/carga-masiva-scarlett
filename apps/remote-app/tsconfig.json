@@ -1,13 +1,10 @@
 {
-  "include": [
-    "src/**/*.mts",
-    "src/**/*.ts",
-    "../../packages/utils/**/*.ts",
-    "src/get-upload-url.ts"
-  ],
-  "exclude": ["node_modules"],
+  "include": ["./functions/**/*.mts", "./functions/**/*.ts"],
+  "exclude": ["node_modules", "build", "dist", ".aws_sam"],
+
   "compilerOptions": {
     // "lib": ["ESNext"],
+
     "module": "ES2022",
     "target": "ES2022",
     "moduleResolution": "node",
@@ -18,8 +15,7 @@
     "noEmit": true,
     "typeRoots": ["node_modules/@types"],
     "paths": {
-      "/opt/utils/*": ["../../packages/utils/src/*"],
-      "/opt/utils/index.js": ["../../packages/utils/src/index.ts"]
+      "/opt/utils/*": ["../../packages/utils/src/*"]
     },
     "baseUrl": "."
   }

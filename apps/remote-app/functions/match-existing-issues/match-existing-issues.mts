@@ -10,7 +10,7 @@ import {
   CsvRowHeaders,
   OperationPayload,
   scarlettMapping,
-} from '/opt/utils/index.js';
+} from '/opt/utils/index';
 
 const ISSUE_TYPE_ID = 11504;
 
@@ -30,6 +30,14 @@ export default async function post(request: Request): Promise<Response> {
         BatchInput: {executionId, projectId, apiBaseUrl, forgeToken},
       },
     } = payload;
+
+    if (!rows.length) {
+      console.info('No hay filas para procesar');
+      return new Response(
+        JSON.stringify({Items: [], BatchInput: {executionId, projectId, apiBaseUrl, forgeToken}}),
+        {status: 204},
+      );
+    }
 
     // Validaciones básicas
     if (!forgeToken || forgeToken === '') {

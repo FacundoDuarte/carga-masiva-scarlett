@@ -1,9 +1,9 @@
-import {SSM} from '/opt/utils/index.js';
+import {StateMachine} from '/opt/utils/index';
 
 // Interface to represent the counts of items in different states
 import type {ItemCounts} from 'utils/src/types';
 
-export default async function post(request: Request): Promise<Response> {
+export default async function get(request: Request): Promise<Response> {
   try {
     // Manejo de CORS para preflight
     if (request.method === 'OPTIONS') {
@@ -37,7 +37,7 @@ export default async function post(request: Request): Promise<Response> {
     }
 
     // Ejecutar DescribeExecution para obtener los detalles de la ejecución
-    const stateMachineDescribe = await new SSM().getStateMachineStatus(executionArn);
+    const stateMachineDescribe = await new StateMachine().getStatus(executionArn);
     console.log(`Status: ${stateMachineDescribe}`);
     console.log(`Status JSON: ${JSON.stringify(stateMachineDescribe)}`);
     // Verificar que la ejecución haya finalizado (SUCCEEDED, FAILED o TIMED_OUT)
@@ -79,7 +79,7 @@ export default async function post(request: Request): Promise<Response> {
     };
     // Suponiendo que el output tiene un campo "mapRunArn"
     // const mapRunArn = output.mapRunArn;
-    const stateMachineMapRuns = await new SSM().listStateMachineMapRuns(executionArn);
+    const stateMachineMapRuns = await new StateMachine().listStateMachineMapRuns(executionArn);
     console.log(`State Machine Map Runs: ${JSON.stringify(stateMachineMapRuns)}`);
 
     if (
@@ -126,7 +126,7 @@ export default async function post(request: Request): Promise<Response> {
       }
 
       // Get detailed status for this map run
-      const stateMapDescribe = await new SSM().getStateMachineMapRunStatus(mapRun.mapRunArn);
+      const stateMapDescribe = await new StateMachine().getMapStatus(mapRun.mapRunArn);
       console.log(`stateMapDescribe: ${JSON.stringify(stateMapDescribe)}`);
 
       // Calculate item counts if itemCounts exists and add to aggregated counts

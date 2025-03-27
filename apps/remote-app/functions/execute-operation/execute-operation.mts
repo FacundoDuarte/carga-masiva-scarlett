@@ -1,4 +1,4 @@
-import {CF, JiraClient, OperationPayload} from '/opt/utils/index.js';
+import {CF, JiraClient, OperationPayload} from '/opt/utils/index';
 
 export default async function post(event: Request): Promise<Response> {
   console.log('Execute event:', event);

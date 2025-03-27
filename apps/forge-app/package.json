@@ -7,14 +7,16 @@
     "lint": "npm-run-all 'lint:*'",
     "lint:eslint": "eslint . --quiet --ext ts,cjs,js --cache",
     "lint:types": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "deploy": "forge deploy",
+    "deploy:prod": "forge deploy -e production"
   },
   "dependencies": {
     "@forge/resolver": "^1.5.25",
     "utils": "*",
-    "remote-app": "*",
     "manifest": "*",
-    "web": "*"
+    "web": "*",
+    "remote-app": "*"
   },
   "devDependencies": {
     "@tsconfig/node18": "^18.2.2"

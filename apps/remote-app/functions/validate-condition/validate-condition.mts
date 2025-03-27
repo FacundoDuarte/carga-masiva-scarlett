@@ -1,6 +1,4 @@
-import {JiraClient, Issue, OperationPayload} from '/opt/utils/index.js';
-
-const ISSUE_TYPE_ID = 11504;
+import {JiraClient, OperationPayload} from '/opt/utils/index';
 
 // Función principal que organiza el flujo
 export default async function post(request: Request): Promise<Response> {
@@ -19,20 +17,18 @@ export default async function post(request: Request): Promise<Response> {
     console.log('Request body:', payload);
     const {
       Items: operations,
-      BatchInput: {apiBaseUrl, forgeToken, projectId},
+      BatchInput: {apiBaseUrl, forgeToken},
     } = payload.event;
 
-    // Validación de que tenemos los datos esenciales
-    if (!operations || !Array.isArray(operations)) {
-      console.error('No se recibieron issues o el formato es incorrecto');
-      throw new Error(
-        'No se recibieron issues o el formato es incorrecto. Datos recibidos: ' +
-          JSON.stringify(payload),
+    if (!operations || !Array.isArray(operations) || !operations.length) {
+      console.info('No hay operaciones para procesar');
+      return new Response(
+        JSON.stringify({Items: []}),
+        {status: 204},
       );
     }
-
     // Validaciones básicas
-    if (!forgeToken || forgeToken === '' || !apiBaseUrl || apiBaseUrl === '') {
+    if (!forgeToken || !apiBaseUrl) {
       console.error('Authorization or API Base URL header is required');
       throw {
         type: 'Lambda.BadRequestException',
@@ -60,19 +56,21 @@ export default async function post(request: Request): Promise<Response> {
         operation: {
           issue: op.issue,
           method: op.method,
-          change: op.change
+          change: op.change,
         },
         client: {
           token: forgeToken,
-          apiBaseUrl: apiBaseUrl
-        }
+          apiBaseUrl: apiBaseUrl,
+        },
       })),
     };
-    
-    console.log('Ejemplo de primer item en payload:', 
-      responsePayload.Items.length > 0 ? 
-      JSON.stringify(responsePayload.Items[0], null, 2) : 
-      'No hay items');
+
+    console.log(
+      'Ejemplo de primer item en payload:',
+      responsePayload.Items.length > 0
+        ? JSON.stringify(responsePayload.Items[0], null, 2)
+        : 'No hay items',
+    );
 
     console.log(
       'Sending response payload with structure:',

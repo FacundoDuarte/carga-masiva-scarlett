@@ -1,11 +1,13 @@
 {
-  "name": "remote-app",
+  "name": "generate-upload-url",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "sam build --config-file sam-config-dev.toml",
-    "deploy": "sam deploy --config-file sam-config-dev.toml",
+    "build": "make build-generate-upload-urlFunction",
+    "deploy": "echo \"Use SAM deploy from root directory\"",
+    "build:deploy": "bun run build && bun run deploy",
+    "install:deps": "bun install",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
@@ -13,5 +15,8 @@
     "@types/node": "^22.13.4",
     "typescript": "^5.0.0",
     "esbuild": "0.19.12"
+  },
+  "dependencies": {
+    "uuid": "^11.1.0"
   }
 }
