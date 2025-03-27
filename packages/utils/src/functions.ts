@@ -17,7 +17,7 @@ import {
 const QUERY_MAX_RESULTS: number = 5000;
 const STATE_MACHINE_ARN =
   process.env.STATE_MACHINE_ARN ??
-  'arn:aws:states:us-east-1:529202746267:stateMachine:scarlet-execution-machine';
+  'arn:aws:states:us-east-1:529202746267:execution:scarlet-execution-machine';
 
 interface FetchFromJiraParams {
   path: string;
@@ -34,7 +34,7 @@ export class StateMachine {
   }
   async getStatus(executionArn: string): Promise<DescribeExecutionCommandOutput> {
     const command = new DescribeExecutionCommand({
-      executionArn: `arn:aws:states:us-east-1:529202746267:execution:${this.stateMachineArn}:scarlet-${executionArn}`,
+      executionArn: `${this.stateMachineArn}:${executionArn}`,
       includedData: 'ALL_DATA',
     });
     const result = await this.sfnClient.send(command);
@@ -49,7 +49,7 @@ export class StateMachine {
   }
   async listStateMachineMapRuns(arn: string): Promise<ListMapRunsCommandOutput> {
     const command = new ListMapRunsCommand({
-      executionArn: `arn:aws:states:us-east-1:529202746267:execution:${this.stateMachineArn}:scarlet-${arn}`,
+      executionArn: `${this.stateMachineArn}:scarlet-${arn}`,
     });
     const result = await this.sfnClient.send(command);
     console.log(`ListMapRunsCommand: ${JSON.stringify(result)}`);

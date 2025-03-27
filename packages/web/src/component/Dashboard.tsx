@@ -6,17 +6,9 @@ import Button from '@atlaskit/button/new';
 import SectionMessage, { Appearance } from '@atlaskit/section-message';
 import { DynamicTableStateless } from '@atlaskit/dynamic-table';
 import { router } from '@forge/bridge';
-import { ItemCounts } from 'utils/src/types';
+import type { ItemCounts } from 'utils/src/types';
+import RechartsPieChart from './PieChart'; // Importa el componente de la gráfica
 
-// Función para navegar al template
-const navigateToTemplate = (url: string | null) => () => {
-  if (!url) {
-    return;
-  }
-  router.navigate(url);
-};
-
-// Exportamos el enum para usarlo en App.tsx
 export enum Status {
   init,
   loaded,
@@ -80,7 +72,7 @@ export default function Dashboard({
                 <ButtonGroup>
                   <Button
                     isDisabled={templateUrl === null}
-                    onClick={navigateToTemplate(templateUrl)}
+                    onClick={() => router.navigate(templateUrl)}
                   >
                     Descargar Template
                   </Button>
@@ -98,52 +90,22 @@ export default function Dashboard({
         )}
       </Form>
 
-      {isProcessing !== Status.init && executionId && (
-        <div>
-          <h3 style={{ color: '#fff', marginBottom: '10px' }}>
-            Estado del procesamiento {isProcessing === Status.inprogress && '(actualizando cada 5 segundos)'}
-          </h3>
-          <DynamicTableStateless
-            isLoading={isProcessing === Status.inprogress}
-            head={{
-              cells: [
-                { key: 'creado', content: 'Exitosos' },
-                { key: 'pendiente', content: 'Pendientes' },
-                { key: 'error', content: 'Errores' },
-                { key: 'total', content: 'Total' },
-                { key: 'progreso', content: 'Progreso' },
-              ],
-            }}
-            rows={[
-              {
-                key: 'summary',
-                cells: [
-                  {
-                    key: 'creado',
-                    content: ticketsState.succeeded,
-                  },
-                  {
-                    key: 'pendiente',
-                    content: ticketsState.pending || 0,
-                  },
-                  {
-                    key: 'error',
-                    content: ticketsState.failed,
-                  },
-                  {
-                    key: 'total',
-                    content: ticketsState.total,
-                  },
-                  {
-                    key: 'progreso',
-                    content: ticketsState.total > 0 
-                      ? `${Math.round((ticketsState.succeeded + ticketsState.failed) / ticketsState.total * 100)}%` 
-                      : '0%',
-                  },
-                ],
-              },
-            ]}
-          />
+      {isProcessing !== Status.init && (
+      <div>
+          <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+            <h3 style={{ color: '#fff' }}>Distribución de Estados</h3>
+            <div
+              style={{
+                height: 1000,
+                width: '100%',
+                maxWidth: 1000,
+                margin: '0 auto',
+              }}
+            >
+              <RechartsPieChart data={ticketsState} />
+            </div>
+          </div>
+
           {isProcessing === Status.done && (
             <div style={{ marginTop: '10px', color: '#fff' }}>
               Procesamiento completado
