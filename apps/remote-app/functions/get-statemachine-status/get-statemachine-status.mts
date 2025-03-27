@@ -18,17 +18,17 @@ export default async function get(request: Request): Promise<Response> {
       });
     }
 
-    // // Se espera que se invoque con el método POST
-    // if (request.method !== 'POST') {
-    //   return new Response('Method not allowed', {
-    //     status: 405,
-    //     headers: {'Content-Type': 'text/plain'},
-    //   });
-    // }
+    if (request.method !== 'POST') {
+      return new Response('Method not allowed', {
+        status: 405,
+        headers: { 'Content-Type': 'text/plain' },
+      });
+    }
 
     // Se recibe el executionArn en el cuerpo de la petición
     const {executionArn} = await request.json();
-
+    console.log("executionArn: ", executionArn);
+    
     if (!executionArn) {
       return new Response('Missing required parameter: executionArn', {
         status: 400,

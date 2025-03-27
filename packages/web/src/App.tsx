@@ -7,6 +7,8 @@ import type { ItemCounts } from 'utils/src/types';
 import Dashboard, { Status } from './component/Dashboard';
 
 export default function App() {
+const POLLING_INTERVAL = 5000;
+  
   // Estado para el archivo CSV y el contexto
   const [objectKey, setObjectKey] = useState<string | undefined>();
   const [context, setContext] = useState<FullContext | undefined>();
@@ -18,9 +20,7 @@ export default function App() {
   } | null>(null);
   const [isProcessing, setIsProcessing] = useState<Status>(Status.init);
 
-  // Estado para el operationId que se obtiene al invocar la operación con el CSV
-  const [execution, setExecution] = useState<string | null>(null);
-
+  const [executionArn, setExecutionArn] = useState<string | null>(null);
   const [templateUrl, setTemplateUrl] = useState<string | null>(null);
 
   // Estado para almacenar el resumen de tickets
@@ -138,7 +138,7 @@ export default function App() {
             ticketsPollingIntervalRef.current = null;
           }
         }
-      }, 5000); // Poll every 5 seconds
+      }, POLLING_INTERVAL); // Poll every 5 seconds
 
       setMessage({
         message: 'Verificando acciones...',
@@ -239,15 +239,14 @@ export default function App() {
 
     try {
       setIsProcessing(Status.inprogress);
-      const { executionId } = await _invokeCsvOperations(
+      const { executionId: execId } = await _invokeCsvOperations(
         objectKey,
         context.extension.project.id
       );
-      console.log('file id: ', executionId);
-
-      setExecution(executionId);
-
-      ticketsResult(executionId);
+      
+      console.log('file id: ', execId);
+      setExecutionArn(execId);
+      ticketsResult(execId);
       setMessage({
         message: 'Operaciones iniciadas con éxito',
         appereance: 'information',
@@ -285,7 +284,7 @@ export default function App() {
       handleFileChange={handleFileChange}
       templateUrl={templateUrl}
       isProcessing={isProcessing}
-      executionId={execution}
+      executionId={executionArn}
       ticketsState={ticketsState}
     />
   );
@@ -308,14 +307,14 @@ async function _invokeCsvOperations(
   return { executionId };
 }
 
-async function _getStatusStateMachine(
-  executionId: string
-): Promise<ItemCounts> {
+async function _getStatusStateMachine(executionId: string): Promise<ItemCounts> {
+  console.log("executionId: ", executionId);
+  
   const res = await invokeRemote<{ counts: ItemCounts }>({
     path: `/Prod/execution/${executionId}`,
     method: 'GET',
   });
   console.log('res: ', res);
-
   return res['body']['counts'];
 }
+
